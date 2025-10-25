@@ -1,0 +1,24 @@
+# OS / editors
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+
+# Virtual envs
+venv/
+.env
+.venv/
+webmapping_ca_env/
+
+# Django
+db.sqlite3
+media/
+staticfiles/
