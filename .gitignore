@@ -16,7 +16,7 @@ __pycache__/
 venv/
 .env
 .venv/
-webmapping_ca_env/
+webmap_ca_env/
 
 # Django
 db.sqlite3
