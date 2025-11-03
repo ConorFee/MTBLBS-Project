@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import trail_map_view
 
 app_name = 'mtb_trails'
 
@@ -19,4 +20,6 @@ urlpatterns = [
     # PARKS CRUD
     path('parks/', views.ParkListCreateView.as_view(), name='park-list-create'),
     path('parks/<int:pk>/', views.ParkDetailView.as_view(), name='park-detail'),
+
+    path('map/', trail_map_view, name='trail_map')
 ]

@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from django.contrib.gis.geos import Point, GEOSGeometry
 from django.contrib.gis.measure import D
 from django.contrib.gis.db.models.functions import Distance
+from django.shortcuts import render
 
 from .models import Trail, POI, Park
 from .serializers import TrailSerializer, POISerializer, ParkSerializer
@@ -81,3 +82,6 @@ def trails_in_park(request):
     trails = Trail.objects.filter(path__intersects=park)
     from .serializers import TrailSerializer
     return Response(TrailSerializer(trails, many=True).data)
+
+def trail_map_view(request):
+    return render(request, 'mtb_trails/trails_map.html')
