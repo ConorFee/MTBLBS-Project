@@ -7,6 +7,10 @@ urlpatterns = [
     # TRAILS CRUD
     path('trails/', views.TrailListCreateView.as_view(), name='trail-list-create'),
     path('trails/<int:pk>/', views.TrailDetailView.as_view(), name='trail-detail'),
+    # Trails spatial queries 
+    path('trails/nearest/', views.nearest_trails, name='nearest_trails'),
+    path('trails/within_radius/', views.trails_within_radius, name='trails_within_radius'),
+    path('trails/in_park/', views.trails_in_park, name='trails_in_park'),
 
     # POIS CRUD
     path('pois/', views.POIListCreateView.as_view(), name='poi-list-create'),

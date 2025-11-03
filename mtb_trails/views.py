@@ -1,6 +1,11 @@
 from rest_framework import generics, permissions
 from rest_framework_gis.filters import InBBoxFilter, DistanceToPointFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.contrib.gis.geos import Point, GEOSGeometry
+from django.contrib.gis.measure import D
+from django.contrib.gis.db.models.functions import Distance
 
 from .models import Trail, POI, Park
 from .serializers import TrailSerializer, POISerializer, ParkSerializer
@@ -48,3 +53,27 @@ class ParkDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Park.objects.all()
     serializer_class = ParkSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+@api_view(['POST'])
+def nearest_trails(request):
+    lat, lng = float(request.data['lat']), float(request.data['lng'])
+    p = Point(lng, lat, srid=4326)
+    trails = Trail.objects.annotate(d=Distance('path', p)).order_by('d')[:10]
+    from .serializers import TrailSerializer
+    return Response(TrailSerializer(trails, many=True).data)
+
+@api_view(['POST'])
+def trails_within_radius(request):
+    lat, lng, radius = float(request.data['lat']), float(request.data['lng']), float(request.data['radius_km'])
+    p = Point(lng, lat, srid=4326)
+    trails = Trail.objects.filter(path__dwithin=(p, D(km=radius)))
+    from .serializers import TrailSerializer
+    return Response(TrailSerializer(trails, many=True).data)
+
+@api_view(['POST'])
+def trails_in_park(request):
+    park = GEOSGeometry(request.data['polygon'], srid=4326)
+    trails = Trail.objects.filter(path__intersects=park)
+    from .serializers import TrailSerializer
+    return Response(TrailSerializer(trails, many=True).data)
