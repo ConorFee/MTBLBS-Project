@@ -84,4 +84,4 @@ def trails_in_park(request):
     return Response(TrailSerializer(trails, many=True).data)
 
 def trail_map_view(request):
-    return render(request, 'mtb_trails/trails_map.html')
+    return render(request, 'mtb_trails/trail_map.html')
