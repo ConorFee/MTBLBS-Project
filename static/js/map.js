@@ -1,32 +1,31 @@
 // MTB Trails Mapper - Main JavaScript functionality
 let map;
-let trailMarkers = L.layerGroup();
+// Use FeatureGroup so getBounds() works
+let trailLayers = L.featureGroup();
 let allTrailsData = [];
 
 // Initialize map when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   initializeMap();
   loadTrails();
   setupEventListeners();
 });
 
 function initializeMap() {
-  map = L.map('map').setView([53.35, -7.5], 7);  // Ireland center
+  map = L.map('map').setView([53.35, -7.5], 7); // Ireland center
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
     maxZoom: 18
   }).addTo(map);
 
-  trailMarkers.addTo(map);
+  trailLayers.addTo(map);
 
-  map.on('click', function(e) {
-    const { lat, lng } = e.latlng;
-    document.getElementById('trail-lat').value = lat.toFixed(6);
-    document.getElementById('trail-lng').value = lng.toFixed(6);
-
-    const modal = new bootstrap.Modal(document.getElementById('addTrailModal'));
-    modal.show();
+  // If you want to open the modal on map click, keep this.
+  // But your modal doesn't have lat/lng inputs, so just show the modal without writing to nonexistent inputs.
+  map.on('click', function () {
+    const modalEl = document.getElementById('addTrailModal');
+    if (modalEl) new bootstrap.Modal(modalEl).show();
   });
 }
 
@@ -34,125 +33,98 @@ function loadTrails() {
   console.log('Loading trails...');
   showLoading(true);
 
-  fetch('/api/trails/geojson/')
-    .then(response => {
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return response.json();
-    })
-    .then(data => {
-      console.log('Raw API response:', data);
-
-      if (data && data.features && Array.isArray(data.features)) {
-        allTrailsData = data.features;
-        displayTrailsOnMap(allTrailsData);
-        updateTrailCount(allTrailsData.length);
-        console.log(`Successfully loaded ${allTrailsData.length} trails`);
-      } else if (Array.isArray(data)) {
-        const geojsonFeatures = data.map(trail => ({
-          type: "Feature",
-          geometry: {
-            type: "LineString",
-            coordinates: trail.path.coordinates
-          },
-          properties: trail
-        }));
-        allTrailsData = geojsonFeatures;
-        displayTrailsOnMap(allTrailsData);
-        updateTrailCount(allTrailsData.length);
-      } else {
-        return loadTrailsFromRegularAPI();
-      }
-    })
-    .catch(error => {
-      console.error('Error with geojson endpoint:', error);
-      return loadTrailsFromRegularAPI();
-    })
-    .finally(() => {
-      showLoading(false);
-    });
-}
-
-function loadTrailsFromRegularAPI() {
-  console.log('Trying regular API...');
-
+  // Your GeoFeatureModelSerializer should already return a FeatureCollection from /api/trails/
   fetch('/api/trails/')
     .then(response => {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     })
     .then(data => {
-      let trailsArray;
-      if (data && data.results && Array.isArray(data.results)) {
-        trailsArray = data.results;
+      // Prefer FeatureCollection
+      if (data && data.type === 'FeatureCollection' && Array.isArray(data.features)) {
+        allTrailsData = data.features;
       } else if (Array.isArray(data)) {
-        trailsArray = data;
+        // Fallback: convert array to Feature-like objects
+        allTrailsData = data.map(trail => ({
+          type: "Feature",
+          geometry: trail.path && trail.path.coordinates ? {
+            type: "LineString",
+            coordinates: trail.path.coordinates
+          } : null,
+          properties: trail
+        }));
+      } else if (data && data.results && Array.isArray(data.results)) {
+        // Paged but non-GeoJSON response
+        allTrailsData = data.results.map(trail => ({
+          type: "Feature",
+          geometry: trail.path && trail.path.coordinates ? {
+            type: "LineString",
+            coordinates: trail.path.coordinates
+          } : null,
+          properties: trail
+        }));
       } else {
-        throw new Error('Unexpected format');
+        throw new Error('Unexpected trails API format');
       }
 
-      const geojsonFeatures = trailsArray.map(trail => ({
-        type: "Feature",
-        geometry: {
-          type: "LineString",
-          coordinates: trail.path.coordinates  // Assume path is LineString
-        },
-        properties: trail
-      }));
-
-      allTrailsData = geojsonFeatures;
       displayTrailsOnMap(allTrailsData);
       updateTrailCount(allTrailsData.length);
-      console.log(`Loaded ${allTrailsData.length} trails from regular API`);
     })
     .catch(error => {
       console.error('Error loading trails:', error);
       showAlert(`Error loading trails: ${error.message}`, 'danger');
+    })
+    .finally(() => {
+      showLoading(false);
     });
 }
 
 function displayTrailsOnMap(trails) {
-  trailMarkers.clearLayers();
+  trailLayers.clearLayers();
 
   trails.forEach(trail => {
     try {
       const { geometry, properties } = trail;
-
       if (!geometry || !geometry.coordinates) {
         console.warn('Invalid geometry for trail:', properties?.name);
         return;
       }
 
-      const coords = geometry.coordinates.map(c => [c[1], c[0]]);  // Leaflet order
+      // Leaflet expects [lat, lng]
+      const coords = geometry.coordinates.map(c => [c[1], c[0]]);
+      const difficulty = (properties.difficulty || '').toLowerCase();
+      const color =
+        difficulty === 'beginner' ? 'green' :
+        difficulty === 'intermediate' ? 'blue' : 'red';
 
-      // Color by difficulty
-      const color = properties.difficulty === 'beginner' ? 'green' : properties.difficulty === 'intermediate' ? 'blue' : 'red';
+      const poly = L.polyline(coords, { color, weight: 5, opacity: 0.8 })
+        .bindPopup(createPopupContent(properties))
+        .addTo(trailLayers);
 
-      const trailLayer = L.polyline(coords, {
-        color: color,
-        weight: 5,
-        opacity: 0.8
-      }).bindPopup(createPopupContent(properties)).addTo(trailMarkers);
+      poly.trailData = properties;
 
-      trailLayer.on('click', function() {
+      poly.on('click', function () {
         showTrailInfo(properties);
       });
-
-      trailLayer.trailData = properties;
-    } catch (error) {
-      console.error('Error rendering trail:', trail, error);
+    } catch (err) {
+      console.error('Error rendering trail:', trail, err);
     }
   });
 
   if (trails.length > 0) {
-    trailMarkers.fitBounds(trailMarkers.getBounds().pad(0.1));
+    const bounds = trailLayers.getBounds();
+    if (bounds.isValid()) map.fitBounds(bounds.pad(0.1));
   }
 }
 
 function createPopupContent(trail) {
   const name = trail.name || 'Unknown Trail';
   const difficulty = trail.difficulty || 'Unknown';
-  const length = trail.length_km || 'Unknown';
-  const elevation = trail.elevation_gain_m || 'Unknown';
+  const length = trail.length_km ?? 'Unknown';
+  const elevation = trail.elevation_gain_m ?? 'Unknown';
+
+  // properties.id should exist with fields="__all__"
+  const id = trail.id ?? '';
 
   return `
     <div class="trail-popup">
@@ -160,98 +132,83 @@ function createPopupContent(trail) {
       <p><strong>Difficulty:</strong> ${difficulty}</p>
       <p><strong>Length:</strong> ${length} km</p>
       <p><strong>Elevation Gain:</strong> ${elevation} m</p>
-      <button class="btn btn-sm btn-primary" onclick="zoomToTrail('${trail.id}')">Zoom to Trail</button>
+      <button class="btn btn-sm btn-primary" onclick="zoomToTrail('${id}')">Zoom to Trail</button>
     </div>
   `;
 }
 
 function showTrailInfo(trail) {
   const infoPanel = document.getElementById('trail-info');
-  if (!infoPanel) {
-    console.warn('Trail info panel not found');
-    return;
-  }
-  // Update panel with trail details (adapt from Lab 4's showCityInfo)
+  const content = document.getElementById('trail-info-content');
+  if (!infoPanel || !content) return;
+
   infoPanel.style.display = 'block';
-  // ... (add content similar to createPopupContent)
+  content.innerHTML = `
+    <div class="trail-info-grid">
+      <div class="info-item">
+        <label>Name</label><div class="value">${trail.name ?? '-'}</div>
+      </div>
+      <div class="info-item">
+        <label>Difficulty</label><div class="value">${trail.difficulty ?? '-'}</div>
+      </div>
+      <div class="info-item">
+        <label>Length (km)</label><div class="value">${trail.length_km ?? '-'}</div>
+      </div>
+      <div class="info-item">
+        <label>Elevation Gain (m)</label><div class="value">${trail.elevation_gain_m ?? '-'}</div>
+      </div>
+    </div>
+  `;
 }
 
 function performSearch() {
-  const query = document.getElementById('trail-search').value.trim();
-  if (!query) {
-    displayTrailsOnMap(allTrailsData);
-    updateTrailCount(allTrailsData.length);
-    return;
+  const input = document.getElementById('trail-search');
+  const difficultySel = document.getElementById('difficulty-filter');
+  if (!input) return;
+
+  const query = input.value.trim().toLowerCase();
+  const diffFilter = (difficultySel?.value || '').toLowerCase();
+
+  // Client-side filter (no server /search endpoint)
+  const filtered = allTrailsData.filter(t => {
+    const name = (t.properties?.name || '').toLowerCase();
+    const difficulty = (t.properties?.difficulty || '').toLowerCase();
+    const matchesText = !query || name.includes(query) || difficulty.includes(query);
+    const matchesDiff = !diffFilter || difficulty === diffFilter;
+    return matchesText && matchesDiff;
+  });
+
+  displayTrailsOnMap(filtered);
+  updateTrailCount(filtered.length);
+
+  if (filtered.length === 0) {
+    showAlert('No trails found matching your filters.', 'info');
   }
-
-  showLoading(true);
-  fetch(`/api/trails/search/?q=${encodeURIComponent(query)}`)
-    .then(response => {
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return response.json();
-    })
-    .then(data => {
-      console.log('Search response:', data);
-
-      let filteredTrails;
-      if (Array.isArray(data)) {
-        filteredTrails = data.map(trail => ({
-          type: "Feature",
-          geometry: {
-            type: "LineString",
-            coordinates: trail.path.coordinates
-          },
-          properties: trail
-        }));
-      } else {
-        filteredTrails = allTrailsData.filter(trail =>
-          trail.properties.name.toLowerCase().includes(query.toLowerCase()) ||
-          trail.properties.difficulty.toLowerCase().includes(query.toLowerCase())
-        );
-      }
-
-      displayTrailsOnMap(filteredTrails);
-      updateTrailCount(filteredTrails.length);
-
-      if (filteredTrails.length === 0) {
-        showAlert('No trails found matching your search.', 'info');
-      }
-    })
-    .catch(error => {
-      console.error('Error searching trails:', error);
-      showAlert(`Error searching trails: ${error.message}`, 'danger');
-    })
-    .finally(() => {
-      showLoading(false);
-    });
 }
 
-// Utility functions (adapt from Lab 4)
 function zoomToTrail(trailId) {
-  const trail = allTrailsData.find(t => t.properties.id === parseInt(trailId));
-  if (trail && trail.geometry && trail.geometry.coordinates) {
-    const group = L.featureGroup([L.polyline(trail.geometry.coordinates.map(c => [c[1], c[0]]))]);
+  const trail = allTrailsData.find(t => String(t.properties?.id) === String(trailId));
+  if (trail?.geometry?.coordinates) {
+    const latlngs = trail.geometry.coordinates.map(c => [c[1], c[0]]);
+    const group = L.featureGroup([L.polyline(latlngs)]);
     map.fitBounds(group.getBounds().pad(0.1));
   }
 }
 
 function updateTrailCount(count) {
-  const countElement = document.getElementById('trail-count');
-  if (countElement) {
-    countElement.textContent = `${count} trails loaded`;
-  }
+  const el = document.getElementById('trail-count');
+  if (el) el.textContent = `${count} trails loaded`;
 }
 
 function showLoading(show) {
-  const searchBtn = document.getElementById('search-btn');
-  if (searchBtn) {
-    if (show) {
-      searchBtn.innerHTML = '<span class="loading"></span> Loading...';
-      searchBtn.disabled = true;
-    } else {
-      searchBtn.innerHTML = '🔍 Search';
-      searchBtn.disabled = false;
-    }
+  const btn = document.getElementById('search-btn');
+  if (!btn) return;
+  if (show) {
+    btn.innerHTML = '<span class="loading"></span> Loading...';
+    btn.disabled = true;
+  } else {
+    btn.innerHTML = '🔍 Search';
+    btn.disabled = false;
   }
 }
 
@@ -268,6 +225,7 @@ function showAlert(message, type) {
 }
 
 function getCsrfToken() {
+  // Uses cookie; make sure CsrfViewMiddleware is enabled (default)
   const cookies = document.cookie.split(';');
   for (let cookie of cookies) {
     const [name, value] = cookie.trim().split('=');
@@ -287,10 +245,21 @@ function setupEventListeners() {
 
   if (searchBtn) searchBtn.addEventListener('click', performSearch);
   if (searchInput) searchInput.addEventListener('keypress', e => e.key === 'Enter' && performSearch());
-  if (clearSearchBtn) clearSearchBtn.addEventListener('click', () => { searchInput.value = ''; displayTrailsOnMap(allTrailsData); updateTrailCount(allTrailsData.length); });
+  if (clearSearchBtn) clearSearchBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    document.getElementById('difficulty-filter').value = '';
+    displayTrailsOnMap(allTrailsData);
+    updateTrailCount(allTrailsData.length);
+  });
   if (refreshBtn) refreshBtn.addEventListener('click', loadTrails);
-  if (closeInfoBtn) closeInfoBtn.addEventListener('click', () => document.getElementById('trail-info').style.display = 'none');
-  if (addTrailBtn) addTrailBtn.addEventListener('click', () => new bootstrap.Modal(document.getElementById('addTrailModal')).show());
+  if (closeInfoBtn) closeInfoBtn.addEventListener('click', () => {
+    const panel = document.getElementById('trail-info');
+    if (panel) panel.style.display = 'none';
+  });
+  if (addTrailBtn) addTrailBtn.addEventListener('click', () => {
+    const modalEl = document.getElementById('addTrailModal');
+    if (modalEl) new bootstrap.Modal(modalEl).show();
+  });
   if (saveTrailBtn) saveTrailBtn.addEventListener('click', saveNewTrail);
 }
 
@@ -300,6 +269,7 @@ function saveNewTrail() {
     difficulty: document.getElementById('trail-difficulty').value,
     length_km: parseFloat(document.getElementById('trail-length').value),
     elevation_gain_m: parseFloat(document.getElementById('trail-elevation').value),
+    // Backend expects geometry for path; you are entering WKT in textarea and DRF-GIS accepts that.
     path: document.getElementById('trail-path').value.trim()
   };
 
@@ -316,18 +286,22 @@ function saveNewTrail() {
     },
     body: JSON.stringify(formData)
   })
-  .then(response => {
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return response.json();
-  })
-  .then(() => {
-    showAlert('Trail added successfully!', 'success');
-    document.getElementById('addTrailModal').querySelector('.modal').hide();
-    document.getElementById('add-trail-form').reset();
-    loadTrails();
-  })
-  .catch(error => {
-    console.error('Error saving trail:', error);
-    showAlert('Error saving trail.', 'danger');
-  });
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      return response.json();
+    })
+    .then(() => {
+      showAlert('Trail added successfully!', 'success');
+      // Properly hide Bootstrap 5 modal
+      const modalEl = document.getElementById('addTrailModal');
+      const instance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+      instance.hide();
+
+      document.getElementById('add-trail-form').reset();
+      loadTrails();
+    })
+    .catch(error => {
+      console.error('Error saving trail:', error);
+      showAlert('Error saving trail.', 'danger');
+    });
 }
