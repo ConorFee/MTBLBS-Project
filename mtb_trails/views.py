@@ -65,11 +65,15 @@ def nearest_trails(request):
 
 @api_view(['POST'])
 def trails_within_radius(request):
-    lat, lng, radius = float(request.data['lat']), float(request.data['lng']), float(request.data['radius_km'])
+    lat = float(request.data['lat'])
+    lng = float(request.data['lng'])
+    radius_km = float(request.data['radius_km'])
     p = Point(lng, lat, srid=4326)
-    trails = Trail.objects.filter(path__dwithin=(p, D(km=radius)))
-    from .serializers import TrailSerializer
+    # convert km to degrees (approximate)
+    radius_deg = radius_km / 111.0
+    trails = Trail.objects.filter(path__dwithin=(p, radius_deg))
     return Response(TrailSerializer(trails, many=True).data)
+
 
 @api_view(['POST'])
 def trails_in_park(request):
