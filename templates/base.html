@@ -4,31 +4,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{% block title %}MTB Trails Ireland{% endblock %}</title>
+  <title>{% block title %}MTB Trails Ireland - Interactive Map{% endblock %}</title>
 
-  <!-- CSRF (optional helper if you want to read it from <meta>) -->
+  <!-- CSRF (handy if you ever read it from <meta>) -->
   <meta name="csrf-token" content="{{ csrf_token }}"/>
 
-  <!-- Bootstrap CSS -->
+  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- Leaflet CSS -->
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
-  <!-- Font Awesome -->
+  <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 
-  <!-- Custom CSS -->
+  <!-- App CSS -->
   <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
 
   {% block extra_css %}{% endblock %}
 </head>
 <body>
-  <!-- Navigation -->
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
       <a class="navbar-brand" href="{% url 'mtb_trails:trail_map' %}">
-        <i class="fas fa-mountain me-2"></i>MTB Trails Ireland
+        <i class="fas fa-biking me-2"></i>MTB Trails Ireland
       </a>
       <div class="navbar-nav ms-auto">
         <a class="nav-link" href="#" id="add-trail-btn">Add Trail</a>
@@ -42,15 +42,14 @@
   <footer class="bg-dark text-light py-3 mt-5">
     <div class="container text-center">
       <p class="mb-0">
-        <i class="fas fa-map-marked-alt me-2"></i>Advanced Web Mapping CA - MTB Trails App
+        <i class="fas fa-map-marked-alt me-2"></i>
+        Advanced Web Mapping CA - MTB Trails App | OpenStreetMap + Leaflet + PostGIS
       </p>
     </div>
   </footer>
 
-  <!-- Bootstrap JS bundle -->
+  <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   {% block extra_js %}{% endblock %}

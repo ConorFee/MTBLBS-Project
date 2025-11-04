@@ -4,55 +4,123 @@
 {% block title %}Interactive MTB Trails Map{% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0">
-  <!-- Control Panel -->
+<div class="container-fluid">
   <div class="row">
-    <div class="col-12">
-      <div class="card m-2">
-        <div class="card-body py-2">
-          <div class="row align-items-center">
-            <div class="col-md-6">
-              <div class="input-group">
-                <input type="text" id="trail-search" class="form-control" placeholder="Search trails...">
-                <button class="btn btn-outline-secondary" type="button" id="search-btn">🔍 Search</button>
-                <button class="btn btn-outline-danger" type="button" id="clear-search">Clear</button>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="d-flex gap-2">
-                <span class="badge bg-info" id="trail-count">0 trails loaded</span>
-                <button class="btn btn-sm btn-success" id="refresh-map">Refresh</button>
-              </div>
-            </div>
+    <!-- Sidebar -->
+    <div class="col-lg-3 col-md-4 py-4">
+      <div class="p-2">
+
+        <!-- Environment Status -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Environment Status</h6>
           </div>
-          <!-- Difficulty Filter -->
-          <div class="row mt-2">
-            <div class="col-md-6">
-              <select id="difficulty-filter" class="form-select">
-                <option value="">All Difficulties</option>
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="expert">Expert</option>
-              </select>
+          <div class="card-body">
+            <div class="status-item mb-2"><span class="badge bg-success me-2">✓</span>Django: 5.x</div>
+            <div class="status-item mb-2"><span class="badge bg-success me-2">✓</span>PostGIS: 3.x</div>
+            <div class="status-item mb-2"><span class="badge bg-success me-2">✓</span>Leaflet: 1.9.4</div>
+            <div class="status-item">
+              <span class="badge bg-primary me-2">📍</span>
+              Trails: <span id="sidebar-trail-count" class="badge bg-primary">0</span>
             </div>
           </div>
         </div>
+
+        <!-- Quick Add Trail -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Quick Add Trail</h6>
+          </div>
+          <div class="card-body">
+            <form id="quick-add-form">
+              <div class="mb-2">
+                <input type="text" class="form-control form-control-sm" id="trail-name" placeholder="Trail name *" required>
+              </div>
+              <div class="mb-2">
+                <select class="form-select form-select-sm" id="trail-difficulty" required>
+                  <option value="">Difficulty *</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+              <div class="row mb-2">
+                <div class="col-6">
+                  <input type="number" step="0.1" class="form-control form-control-sm" id="trail-length" placeholder="Length (km) *" required>
+                </div>
+                <div class="col-6">
+                  <input type="number" step="1" class="form-control form-control-sm" id="trail-elevation" placeholder="Gain (m) *" required>
+                </div>
+              </div>
+              <div class="mb-2">
+                <textarea class="form-control form-control-sm" id="trail-path" rows="2" placeholder="WKT LINESTRING *" required></textarea>
+                <small class="text-muted d-block mt-1">
+                  Tip: Click on the map to append points. Press <kbd>Esc</kbd> to clear the builder.
+                </small>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm w-100" id="save-trail">
+                <i class="fas fa-save me-1"></i>Save Trail
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <h6 class="mb-0"><i class="fas fa-search me-2"></i>Search & Filters</h6>
+          </div>
+          <div class="card-body">
+            <div class="input-group mb-2">
+              <input type="text" id="trail-search" class="form-control form-control-sm" placeholder="Search trails...">
+              <button class="btn btn-outline-secondary btn-sm" type="button" id="search-btn">🔍</button>
+              <button class="btn btn-outline-danger btn-sm" type="button" id="clear-search">Clear</button>
+            </div>
+            <select id="difficulty-filter" class="form-select form-select-sm mb-2">
+              <option value="">All Difficulties</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="expert">Expert</option>
+            </select>
+            <div class="d-grid">
+              <button class="btn btn-primary btn-sm" id="refresh-map">Refresh</button>
+            </div>
+            <hr class="my-2">
+            <div class="d-grid">
+              <button class="btn btn-success btn-sm" id="proximity-btn">📍 Find Nearest</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
-  </div>
 
-  <!-- Map Container -->
-  <div class="row">
-    <div class="col-12">
-      <!-- You can keep calc(...) OR rely on CSS (#map {height: 70vh}) -->
-      <div id="map" style="height: calc(100vh - 120px); width: 100%;"></div>
-    </div>
-  </div>
+    <!-- Main Map -->
+    <div class="col-lg-9 col-md-8">
+      <div id="map-container" class="position-relative">
+        <!-- full-screen loading overlay for data fetches -->
+        <div class="map-loading">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
 
-  <!-- Trail Info Panel -->
-  <div class="row">
-    <div class="col-12">
-      <div id="trail-info" class="card m-2" style="display: none;">
+        <!-- the map -->
+        <div id="map" class="w-100" style="height: 70vh;"></div>
+
+        <!-- Live Coordinate HUD -->
+        <div class="map-info-box">
+          <div class="bg-white rounded p-2 shadow-sm">
+            <small class="text-muted">
+              <i class="fas fa-location-arrow me-1"></i>
+              <span id="map-coordinates">Move mouse on map…</span>
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trail Info Panel -->
+      <div id="trail-info" class="card m-2" style="display:none;">
         <div class="card-header d-flex justify-content-between">
           <h5 class="mb-0">Trail Info</h5>
           <button type="button" class="btn-close" id="close-info"></button>
@@ -63,7 +131,7 @@
   </div>
 </div>
 
-<!-- Add Trail Modal -->
+<!-- Add Trail Modal (same fields as quick add) -->
 <div class="modal fade" id="addTrailModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -101,6 +169,9 @@
               Path (WKT LineString, e.g., LINESTRING(-6.26 53.25, -6.27 53.26)) *
             </label>
             <textarea class="form-control" id="trail-path" rows="3" required></textarea>
+            <small class="text-muted d-block mt-1">
+              Tip: Click on the map to append points. Press <kbd>Esc</kbd> to clear.
+            </small>
           </div>
         </form>
       </div>
@@ -114,6 +185,5 @@
 {% endblock %}
 
 {% block extra_js %}
-  <!-- Your page-specific JS -->
   <script src="{% static 'js/map.js' %}"></script>
 {% endblock %}

@@ -9,7 +9,7 @@ urlpatterns = [
     path('trails/', views.TrailListCreateView.as_view(), name='trail-list-create'),
     path('trails/<int:pk>/', views.TrailDetailView.as_view(), name='trail-detail'),
     # Trails spatial queries 
-    path('trails/nearest/', views.nearest_trails, name='nearest_trails'),
+    path('trails/proximity/', views.nearest_trails, name='nearest_trails'),  # New GET endpoint
     path('trails/within_radius/', views.trails_within_radius, name='trails_within_radius'),
     path('trails/in_park/', views.trails_in_park, name='trails_in_park'),
 
@@ -22,7 +22,7 @@ urlpatterns = [
     path('parks/<int:pk>/', views.ParkDetailView.as_view(), name='park-detail'),
 
     path('map/', trail_map_view, name='trail_map'),
-    path('trails/geojson/', views.trails_geojson, name='trails_geojson')
-
+    path('trails/geojson/', views.trails_geojson, name='trails_geojson'),
+    path('trails/search/', views.search_trails, name='search_trails')
     
 ]

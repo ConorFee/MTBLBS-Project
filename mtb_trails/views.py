@@ -7,6 +7,7 @@ from django.contrib.gis.geos import Point, GEOSGeometry
 from django.contrib.gis.measure import D
 from django.contrib.gis.db.models.functions import Distance
 from django.shortcuts import render
+from django.db.models import Q
 
 from .models import Trail, POI, Park
 from .serializers import TrailSerializer, POISerializer, ParkSerializer
@@ -15,10 +16,9 @@ from .serializers import TrailSerializer, POISerializer, ParkSerializer
 class TrailListCreateView(generics.ListCreateAPIView):
     queryset = Trail.objects.all()
     serializer_class = TrailSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    # Added for Spatial filtering
+    permission_classes = [permissions.AllowAny]  # For testing; revert to IsAuthenticatedOrReadOnly
     filter_backends = [DjangoFilterBackend, InBBoxFilter]
-    bbox_filter_field = 'path'  # LineStringField for trail paths
+    bbox_filter_field = 'path'
 
 class TrailDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Trail.objects.all()
@@ -30,10 +30,9 @@ class POIListCreateView(generics.ListCreateAPIView):
     queryset = POI.objects.all()
     serializer_class = POISerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    # Spatial filtering
     filter_backends = [DjangoFilterBackend, DistanceToPointFilter, InBBoxFilter]
-    bbox_filter_field = 'location'  # PointField for map bounds filtering
-    distance_filter_field = 'location'  # Enables distance queries
+    bbox_filter_field = 'location'
+    distance_filter_field = 'location'
     distance_filter_convert_meters = True
 
 class POIDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -46,42 +45,45 @@ class ParkListCreateView(generics.ListCreateAPIView):
     queryset = Park.objects.all()
     serializer_class = ParkSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    # Spatial filtering
     filter_backends = [DjangoFilterBackend, InBBoxFilter]
-    bbox_filter_field = 'boundary'  # PolygonField for park boundaries
+    bbox_filter_field = 'boundary'
 
 class ParkDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Park.objects.all()
     serializer_class = ParkSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-
-@api_view(['POST'])
+@api_view(['GET'])  # Changed to GET
 def nearest_trails(request):
-    lat, lng = float(request.data['lat']), float(request.data['lng'])
+    lat = float(request.GET.get('lat', 53.35))
+    lng = float(request.GET.get('lng', -7.5))
+    radius_km = float(request.GET.get('radius', 50))
     p = Point(lng, lat, srid=4326)
-    trails = Trail.objects.annotate(d=Distance('path', p)).order_by('d')[:10]
-    from .serializers import TrailSerializer
-    return Response(TrailSerializer(trails, many=True).data)
+    trails = Trail.objects.filter(
+        path__distance_lte=(p, D(km=radius_km))
+    ).annotate(d=Distance('path', p)).order_by('d')[:10]
+    serializer = TrailSerializer(trails, many=True)
+    return Response(serializer.data)
 
-@api_view(['POST'])
+@api_view(['GET'])  # Changed to GET
 def trails_within_radius(request):
-    lat = float(request.data['lat'])
-    lng = float(request.data['lng'])
-    radius_km = float(request.data['radius_km'])
+    lat = float(request.GET.get('lat', 53.35))
+    lng = float(request.GET.get('lng', -7.5))
+    radius_km = float(request.GET.get('radius_km', 10))
     p = Point(lng, lat, srid=4326)
-    # convert km to degrees (approximate)
-    radius_deg = radius_km / 111.0
-    trails = Trail.objects.filter(path__dwithin=(p, radius_deg))
-    return Response(TrailSerializer(trails, many=True).data)
+    trails = Trail.objects.filter(path__dwithin=(p, D(km=radius_km)))
+    serializer = TrailSerializer(trails, many=True)
+    return Response(serializer.data)
 
-
-@api_view(['POST'])
+@api_view(['GET'])  # Changed to GET
 def trails_in_park(request):
-    park = GEOSGeometry(request.data['polygon'], srid=4326)
+    polygon_wkt = request.GET.get('polygon')  # Pass as WKT query param
+    if not polygon_wkt:
+        return Response({'error': 'Polygon WKT required'}, status=400)
+    park = GEOSGeometry(polygon_wkt, srid=4326)
     trails = Trail.objects.filter(path__intersects=park)
-    from .serializers import TrailSerializer
-    return Response(TrailSerializer(trails, many=True).data)
+    serializer = TrailSerializer(trails, many=True)
+    return Response(serializer.data)
 
 def trail_map_view(request):
     return render(request, 'mtb_trails/trail_map.html')
@@ -89,4 +91,20 @@ def trail_map_view(request):
 @api_view(['GET'])
 def trails_geojson(request):
     trails = Trail.objects.all()
-    return Response({'type': 'FeatureCollection', 'features': TrailSerializer(trails, many=True).data})
+    data = TrailSerializer(trails, many=True).data
+    # If DRF-GIS already returned a FeatureCollection, return it as-is:
+    if isinstance(data, dict) and data.get('type') == 'FeatureCollection':
+        return Response(data)
+    # Fallback (e.g., if you ever swap the serializer):
+    return Response({'type': 'FeatureCollection', 'features': data})
+
+@api_view(['GET'])
+def search_trails(request):
+    query = request.GET.get('q', '')
+    qs = Trail.objects.filter(
+        Q(name__icontains=query) | Q(difficulty__icontains=query)
+    ) if query else Trail.objects.all()
+    data = TrailSerializer(qs, many=True).data
+    if isinstance(data, dict) and data.get('type') == 'FeatureCollection':
+        return Response(data)
+    return Response({'type': 'FeatureCollection', 'features': data})
