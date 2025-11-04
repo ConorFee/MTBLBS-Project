@@ -21,5 +21,8 @@ urlpatterns = [
     path('parks/', views.ParkListCreateView.as_view(), name='park-list-create'),
     path('parks/<int:pk>/', views.ParkDetailView.as_view(), name='park-detail'),
 
-    path('map/', trail_map_view, name='trail_map')
+    path('map/', trail_map_view, name='trail_map'),
+    path('trails/geojson/', views.trails_geojson, name='trails_geojson')
+
+    
 ]

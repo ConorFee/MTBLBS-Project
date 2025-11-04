@@ -85,3 +85,8 @@ def trails_in_park(request):
 
 def trail_map_view(request):
     return render(request, 'mtb_trails/trail_map.html')
+
+@api_view(['GET'])
+def trails_geojson(request):
+    trails = Trail.objects.all()
+    return Response({'type': 'FeatureCollection', 'features': TrailSerializer(trails, many=True).data})
