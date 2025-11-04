@@ -23,6 +23,8 @@ urlpatterns = [
 
     path('map/', trail_map_view, name='trail_map'),
     path('trails/geojson/', views.trails_geojson, name='trails_geojson'),
-    path('trails/search/', views.search_trails, name='search_trails')
+    path('trails/search/', views.search_trails, name='search_trails'),
+
+    path('trails/list/', views.trails_readonly_view, name='trails_readonly')
     
 ]

@@ -108,3 +108,8 @@ def search_trails(request):
     if isinstance(data, dict) and data.get('type') == 'FeatureCollection':
         return Response(data)
     return Response({'type': 'FeatureCollection', 'features': data})
+
+def trails_readonly_view(request):
+    trails = Trail.objects.all().order_by('name')
+    return render(request, 'mtb_trails/trails_list.html', {'trails': trails})
+
