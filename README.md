@@ -5,7 +5,7 @@ Backed by **Django/GeoDjango + PostGIS** and rendered with **Leaflet** as GeoJSO
 
 ## Features
 - 🗺️ **Interactive map** (Leaflet + OSM tiles), Ireland-centric view.
-- 🧵 **Trail geometry** stored as `LineString` (SRID 4326), emitted as GeoJSON.
+- 🧵 **Trail geometry** stored as `LineString` (SRID 4326) and `Polygons`, emitted as GeoJSON.
 - 🔎 **Search & filter** by name and difficulty.
 - ➕ **Add trail** from the map via a WKT line builder (click to append points; press `Esc` to clear).
 - 📍 **Find nearest** trails to a chosen point (or geolocation) within a given radius.
@@ -45,3 +45,39 @@ cp .env.example .env
 # 5) Migrate & run
 python manage.py migrate
 python manage.py runserver
+```
+
+## API Reference
+
+All spatial responses are returned as **GeoJSON** unless otherwise noted.
+
+| **Endpoint** | **Method** | **Purpose** | **Notes** |
+|---------------|-------------|--------------|------------|
+| `/api/trails/` | **GET** | List all trails | Returns GeoJSON Features (via `drf-gis`). |
+| `/api/trails/` | **POST** | Create a new trail | Body: `name`, `difficulty`, `length_km`, `elevation_gain_m`, **`path` (WKT LineString)**. |
+| `/api/trails/<id>/` | **GET / PUT / PATCH / DELETE** | Retrieve, update, or delete a trail | Operates on a single GeoDjango model instance. |
+| `/api/trails/geojson/` | **GET** | Retrieve a full FeatureCollection of all trails | Used by the map to load all trail data. |
+| `/api/trails/search/?q=...` | **GET** | Search trails by name or difficulty | Returns a filtered FeatureCollection. |
+| `/api/trails/proximity/?lat=&lng=&radius=` | **GET** | Find nearest trails within a given radius (km) | Uses PostGIS distance filters (`path__distance_lte`). |
+| `/api/pois/` | **GET / POST** | Manage Points of Interest (POIs) | Returns GeoJSON Point features (future extension). |
+| `/api/parks/` | **GET / POST** | Manage Parks or Boundary areas | Returns GeoJSON Polygon features (future extension). |
+
+Payload Example:
+
+```bash
+{
+  "name": "Ticknock Blue",
+  "difficulty": "intermediate",
+  "length_km": 12.5,
+  "elevation_gain_m": 300,
+  "path": "LINESTRING(-6.26 53.25, -6.27 53.26, -6.28 53.27)"
+}
+
+```
+
+## Known Issues/Limitations
+
+ - No auth/roles in demo mode (open create/delete if left enabled).
+ - Create expects valid WKT; invalid input is rejected with a 400.
+ - Only SRID 4326 supported out of the box.
+ - If your DB lacks the postgis extension, migrations will fail.
