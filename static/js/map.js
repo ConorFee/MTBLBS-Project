@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Map init
 function initializeMap() {
   map = L.map('map', { zoomControl: true, attributionControl: true })
-          .setView([53.35, -7.5], 7); // Ireland
+          .setView([53.35, -7.5], 12); // Ireland
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors | MTB Trails Ireland',
@@ -186,7 +186,7 @@ function saveNewTrail() {
     return;
   }
 
-  const payload = { name, difficulty, length_km, elevation_gain_m, path: wkt };
+  const payload = { name, difficulty, length_km, elevation_gain_m, path_wkt: wkt };
 
   showLoading(true);
   fetch('/api/trails/', {

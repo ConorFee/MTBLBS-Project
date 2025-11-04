@@ -4,30 +4,48 @@ from django.contrib.gis.geos import GEOSGeometry, GEOSException
 from .models import Trail, POI, Park
 
 class TrailSerializer(GeoFeatureModelSerializer):
-    path = GeometrySerializerMethodField()  # Force GeoJSON
+    # Read-only GeoJSON out
+    path = GeometrySerializerMethodField(read_only=True)
+    # Write-only WKT in
+    path_wkt = serializers.CharField(write_only=True, required=False, allow_blank=False)
 
     class Meta:
         model = Trail
         geo_field = 'path'
-        fields = '__all__'
+        # IMPORTANT: __all__ won't include extra non-model fields -> list them explicitly
+        fields = ('id', 'name', 'difficulty', 'length_km', 'elevation_gain_m', 'path', 'path_wkt')
 
     def get_path(self, obj):
-        return obj.path  # GeoDjango auto-converts to GeoJSON dict
+        # GeoDjango returns a mapping compatible with GeoJSON
+        return obj.path
 
     def create(self, validated_data):
-        path_data = validated_data.get('path')
-        if isinstance(path_data, str):
+        wkt = validated_data.pop('path_wkt', None)
+        if wkt:
             try:
-                validated_data['path'] = GEOSGeometry(path_data)
+                validated_data['path'] = GEOSGeometry(wkt)
             except GEOSException as e:
-                raise serializers.ValidationError({'path': f'Invalid WKT: {str(e)}'})
+                raise serializers.ValidationError({'path_wkt': f'Invalid WKT: {str(e)}'})
+        elif 'path' not in validated_data:
+            raise serializers.ValidationError({'path_wkt': 'This field is required.'})
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        wkt = validated_data.pop('path_wkt', None)
+        if wkt:
+            try:
+                validated_data['path'] = GEOSGeometry(wkt)
+            except GEOSException as e:
+                raise serializers.ValidationError({'path_wkt': f'Invalid WKT: {str(e)}'})
+        return super().update(instance, validated_data)
+
 
 class POISerializer(GeoFeatureModelSerializer):
     class Meta:
         model = POI
         geo_field = 'location'
         fields = '__all__'
+
 
 class ParkSerializer(GeoFeatureModelSerializer):
     class Meta:
