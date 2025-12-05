@@ -1,439 +1,439 @@
-// ==================================================
-// MTB Trails Ireland - Interactive Map Application
-// CA2 - Advanced Web Mapping
-// ==================================================
+// ============================================
+// MTB Trails Ireland - Map JavaScript
+// Advanced Web Mapping CA2
+// ============================================
+
+console.log('🗺️ MTB Trails Map Initializing...');
 
 // Global variables
 let map;
-let layerGroups = {
-    parks: L.featureGroup(),
-    trails: L.featureGroup(),
-    pois: L.featureGroup()
-};
-let layerControl;
 let allTrailsData = [];
+let allParksData = [];
+let allPOIsData = [];
+let layerGroups = {
+    parks: null,
+    trails: null,
+    pois: null
+};
 
-// WKT Builder state
-let wktPoints = [];
-let tempLineLayer = null;
-let wktBuilderActive = false;
-
-// ==================================================
+// ============================================
 // INITIALIZATION
-// ==================================================
+// ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('MTB Trails Map Initializing...');
-    initializeMap();
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
     loadAllData();
     setupEventListeners();
+    console.log('✓ Event listeners set up');
 });
 
-// ==================================================
-// MAP SETUP
-// ==================================================
-
-function initializeMap() {
-    // Create map centered on Ireland (Dublin/Wicklow region)
+// Initialize Leaflet map
+function initMap() {
     map = L.map('map', {
-        zoomControl: true,
-        attributionControl: true
-    }).setView([53.20, -6.30], 10); // Centered on Wicklow/Dublin MTB areas
-
-    // Add OpenStreetMap tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors | MTB Trails Ireland',
-        maxZoom: 18,
-        minZoom: 7
-    }).addTo(map);
-
-    // Add scale control
-    L.control.scale({ 
-        position: 'bottomleft',
-        imperial: false 
-    }).addTo(map);
-
-    // Add all layer groups to map
-    layerGroups.parks.addTo(map);
-    layerGroups.trails.addTo(map);
-    layerGroups.pois.addTo(map);
-
-    // Setup layer control (will be populated after data loads)
-    setupLayerControl();
-
-    // Optional: Show coordinates on mouse move
-    map.on('mousemove', (e) => {
-        const hud = document.getElementById('map-coordinates');
-        if (hud) {
-            hud.textContent = `Coords: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
-        }
+        center: [53.35, -6.26],
+        zoom: 10,
+        zoomControl: true
     });
 
-    console.log(' Map initialized');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors | MTB Trails Ireland',
+        maxZoom: 18
+    }).addTo(map);
+
+    // Initialize layer groups
+    layerGroups.parks = L.layerGroup().addTo(map);
+    layerGroups.trails = L.layerGroup().addTo(map);
+    layerGroups.pois = L.layerGroup().addTo(map);
+
+    // Add layer control
+    L.control.layers(null, {
+        '🏞️ Parks': layerGroups.parks,
+        '🚵 Trails': layerGroups.trails,
+        '📍 Points of Interest': layerGroups.pois
+    }, { position: 'topright' }).addTo(map);
+
+    // Mouse coordinates display
+    map.on('mousemove', function(e) {
+        document.getElementById('map-coordinates').textContent = 
+            `Lat: ${e.latlng.lat.toFixed(5)}, Lng: ${e.latlng.lng.toFixed(5)}`;
+    });
+
+    console.log('✓ Map initialized');
 }
 
-// ==================================================
+// ============================================
 // DATA LOADING
-// ==================================================
+// ============================================
 
 async function loadAllData() {
     showLoading(true);
-    
     try {
-        // Load all data in parallel
-        const [parksData, trailsData, poisData] = await Promise.all([
+        await Promise.all([
             fetchParks(),
             fetchTrails(),
             fetchPOIs()
         ]);
-
-        // Display each layer
-        if (parksData) displayParks(parksData);
-        if (trailsData) {
-            allTrailsData = trailsData.features || [];
-            displayTrails(trailsData);
-        }
-        if (poisData) displayPOIs(poisData);
-
-        // Fit map to show all data
-        fitMapToBounds();
-
-        // Update UI counts
-        updateDataCounts();
-
         console.log('✓ All data loaded successfully');
-        showAlert('Map data loaded successfully!', 'success', 3000);
-
+        populateParkFilter();
     } catch (error) {
         console.error('❌ Error loading data:', error);
-        showAlert(`Error loading map data: ${error.message}`, 'danger');
     } finally {
         showLoading(false);
     }
 }
 
-// Fetch Parks data
 async function fetchParks() {
     try {
         const response = await fetch('/api/parks/geojson/');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        console.log('Parks loaded:', data.features?.length || 0);
-        return data;
+        allParksData = data.features;
+        displayParks(data);
+        console.log(`✓ Parks loaded: ${data.features.length}`);
     } catch (error) {
-        console.error('Error fetching parks:', error);
-        return null;
+        console.error('❌ Error fetching parks:', error);
     }
 }
 
-// Fetch Trails data
 async function fetchTrails() {
     try {
         const response = await fetch('/api/trails/geojson/');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        console.log('Trails loaded:', data.features?.length || 0);
-        return data;
+        allTrailsData = data.features;
+        displayTrails(data);
+        updateDataCounts();
+        console.log(`✓ Trails loaded: ${data.features.length}`);
     } catch (error) {
-        console.error('Error fetching trails:', error);
-        return null;
+        console.error('❌ Error fetching trails:', error);
     }
 }
 
-// Fetch POIs data
 async function fetchPOIs() {
     try {
         const response = await fetch('/api/pois/geojson/');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        console.log('POIs loaded:', data.features?.length || 0);
-        return data;
+        allPOIsData = data.features;
+        displayPOIs(data);
+        console.log(`✓ POIs loaded: ${data.features.length}`);
     } catch (error) {
-        console.error('Error fetching POIs:', error);
-        return null;
+        console.error('❌ Error fetching POIs:', error);
     }
 }
 
-// ==================================================
+// ============================================
 // DISPLAY FUNCTIONS
-// ==================================================
+// ============================================
 
-// Parks (Polygons)
 function displayParks(geojson) {
     if (!geojson || !geojson.features) return;
-
+    
+    layerGroups.parks.clearLayers();
+    
     L.geoJSON(geojson, {
-        style: () => ({
-            color: '#FF6B35',
+        style: {
+            color: '#ff7f00',
             weight: 2,
-            opacity: 0.8,
-            fillColor: '#FF6B35',
-            fillOpacity: 0.1
-        }),
-        onEachFeature: (feature, layer) => {
-            const props = feature.properties || {};
-            const popup = `
-                <div class="park-popup">
-                    <h5>${props.name || 'Park'}</h5>
-                    <p><strong>Source:</strong> ${props.source || 'manual'}</p>
-                    ${props.description ? `<p>${props.description}</p>` : ''}
-                </div>
+            fillColor: '#ff7f00',
+            fillOpacity: 0.2
+        },
+        onEachFeature: function(feature, layer) {
+            const props = feature.properties;
+            const popupContent = `
+                <h5>🏞️ ${props.name}</h5>
+                <p><strong>Location:</strong> ${props.location || 'N/A'}</p>
+                <p><strong>Area:</strong> ${props.area_hectares || 'N/A'} hectares</p>
             `;
-            layer.bindPopup(popup);
-            layer.addTo(layerGroups.parks);
+            layer.bindPopup(popupContent);
         }
-    });
-
-    console.log(` ${geojson.features.length} parks added to map`);
+    }).addTo(layerGroups.parks);
+    
+    console.log(`✓ ${geojson.features.length} parks added to map`);
 }
 
-// Trails (LineStrings)
 function displayTrails(geojson) {
     if (!geojson || !geojson.features) return;
-
-    // Clear existing trail layer if reloading
+    
     layerGroups.trails.clearLayers();
-
+    
+    const difficultyColors = {
+        'beginner': '#10b981',
+        'intermediate': '#3b82f6',
+        'advanced': '#6b7280',
+        'expert': '#ef4444'
+    };
+    
     L.geoJSON(geojson, {
-        style: (feature) => {
-            const difficulty = feature.properties?.difficulty?.toLowerCase() || 'intermediate';
+        style: function(feature) {
             return {
-                color: getTrailColor(difficulty),
+                color: difficultyColors[feature.properties.difficulty] || '#3b82f6',
                 weight: 4,
-                opacity: 0.8,
-                className: 'trail-line'
+                opacity: 0.8
             };
         },
-        onEachFeature: (feature, layer) => {
-            const props = feature.properties || {};
-            const popup = `
-                <div class="trail-popup">
-                    <h5>${props.name || 'Trail'}</h5>
-                    <p><strong>Park:</strong> ${props.park_name || 'Not assigned'}</p>
-                    <p><strong>Difficulty:</strong> ${props.difficulty || 'Unknown'}</p>
-                    <p><strong>Length:</strong> ${props.length_km ?? 'N/A'} km</p>
-                    <p><strong>Elevation Gain:</strong> ${props.elevation_gain_m ?? 'N/A'} m</p>
-                    ${props.description ? `<p>${props.description}</p>` : ''}
-                </div>
+        onEachFeature: function(feature, layer) {
+            const props = feature.properties;
+            const popupContent = `
+                <h5> ${props.name}</h5>
+                <p><strong>Difficulty:</strong> ${props.difficulty}</p>
+                <p><strong>Length:</strong> ${props.length_km} km</p>
+                <p><strong>Elevation Gain:</strong> ${props.elevation_gain_m} m</p>
+                ${props.description ? `<p>${props.description}</p>` : ''}
             `;
-            layer.bindPopup(popup);
-            layer.bindTooltip(props.name || 'Trail', { sticky: true });
-            layer.addTo(layerGroups.trails);
+            layer.bindPopup(popupContent);
+            
+            // Store trail ID for focusing
+            layer.trailId = props.id;
         }
-    });
-
-    console.log(` ${geojson.features.length} trails added to map`);
+    }).addTo(layerGroups.trails);
+    
+    console.log(`✓ ${geojson.features.length} trails added to map`);
+    
+    // Render trail cards in sidebar
+    renderTrailCards(geojson.features);
 }
 
-// POIs (Points)
 function displayPOIs(geojson) {
     if (!geojson || !geojson.features) return;
-
-    // Clear existing POI layer if reloading
+    
     layerGroups.pois.clearLayers();
-
+    
+    const poiIcons = {
+        'parking': '🅿️',
+        'viewpoint': '🔭',
+        'rest_area': '🪑',
+        'water_source': '💧',
+        'bike_repair': '🔧',
+        'default': '📍'
+    };
+    
     L.geoJSON(geojson, {
-        pointToLayer: (feature, latlng) => {
-            const icon = getPOIIcon(feature.properties?.type);
-            return L.marker(latlng, { icon });
+        pointToLayer: function(feature, latlng) {
+            const props = feature.properties;
+            const icon = L.divIcon({
+                html: poiIcons[props.poi_type] || poiIcons.default,
+                className: 'poi-icon',
+                iconSize: [30, 30]
+            });
+            return L.marker(latlng, { icon: icon });
         },
-        onEachFeature: (feature, layer) => {
-            const props = feature.properties || {};
-            const popup = `
-                <div class="poi-popup">
-                    <h5>${props.name || 'POI'}</h5>
-                    <p><strong>Type:</strong> ${props.type_display || props.type || 'Unknown'}</p>
-                    <p><strong>Park:</strong> ${props.park_name || 'Not assigned'}</p>
-                    ${props.description ? `<p>${props.description}</p>` : ''}
-                </div>
+        onEachFeature: function(feature, layer) {
+            const props = feature.properties;
+            const popupContent = `
+                <h5>${poiIcons[props.poi_type] || '📍'} ${props.name}</h5>
+                <p><strong>Type:</strong> ${props.poi_type}</p>
+                ${props.description ? `<p>${props.description}</p>` : ''}
             `;
-            layer.bindPopup(popup);
-            layer.bindTooltip(props.name || 'POI');
-            layer.addTo(layerGroups.pois);
+            layer.bindPopup(popupContent);
         }
-    });
-
+    }).addTo(layerGroups.pois);
+    
     console.log(`✓ ${geojson.features.length} POIs added to map`);
 }
 
+// ============================================
+// TRAIL CARDS RENDERING
+// ============================================
 
-// ==================================================
-// STYLING HELPERS
-// ==================================================
-
-function getTrailColor(difficulty) {
-    const colors = {
-        'beginner': '#28a745',    // Green
-        'intermediate': '#007bff', // Blue
-        'expert': '#dc3545'        // Red
-    };
-    return colors[difficulty] || '#6c757d'; // Grey default
+function renderTrailCards(trails) {
+    const trailList = document.getElementById('trail-list');
+    const resultsCount = document.getElementById('results-count');
+    
+    if (!trails || trails.length === 0) {
+        trailList.innerHTML = `
+            <div class="loading-state">
+                <i class="fas fa-mountain"></i>
+                <p>No trails found</p>
+            </div>
+        `;
+        resultsCount.textContent = 'No trails found';
+        return;
+    }
+    
+    resultsCount.textContent = `Showing ${trails.length} trail${trails.length !== 1 ? 's' : ''}`;
+    
+    trailList.innerHTML = trails.map(trail => {
+        const props = trail.properties;
+        return `
+            <div class="trail-card" data-trail-id="${props.id}" onclick="focusOnTrail(${props.id})">
+                <div class="trail-card-header">
+                    <h6 class="trail-card-title">${props.name}</h6>
+                    <span class="difficulty-badge difficulty-${props.difficulty}">
+                        ${props.difficulty}
+                    </span>
+                </div>
+                <div class="trail-card-meta">
+                    <span><i class="fas fa-ruler"></i> ${props.length_km} km</span>
+                    <span><i class="fas fa-mountain"></i> ${props.elevation_gain_m}m</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
-function getDifficultyBadge(difficulty) {
-    const badges = {
-        'beginner': 'success',
-        'intermediate': 'primary',
-        'expert': 'danger'
-    };
-    return badges[difficulty?.toLowerCase()] || 'secondary';
+// Focus on specific trail when card clicked
+window.focusOnTrail = function(trailId) {
+    layerGroups.trails.eachLayer(layer => {
+        if (layer.trailId === trailId) {
+            map.fitBounds(layer.getBounds(), { padding: [50, 50] });
+            layer.openPopup();
+            
+            // Highlight active card
+            document.querySelectorAll('.trail-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            const activeCard = document.querySelector(`[data-trail-id="${trailId}"]`);
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+        }
+    });
+};
+
+// ============================================
+// FILTER & SEARCH
+// ============================================
+
+function setupEventListeners() {
+    // Search input
+    const searchInput = document.getElementById('trail-search');
+    const clearSearchBtn = document.getElementById('clear-search-btn');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                clearSearchBtn.style.display = 'block';
+            } else {
+                clearSearchBtn.style.display = 'none';
+            }
+            filterTrails();
+        });
+    }
+    
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            this.style.display = 'none';
+            filterTrails();
+        });
+    }
+    
+    // Filters
+    const difficultyFilter = document.getElementById('difficulty-filter');
+    const parkFilter = document.getElementById('park-filter');
+    const lengthFilter = document.getElementById('length-filter');
+    const clearFiltersBtn = document.getElementById('clear-filters-btn');
+    
+    if (difficultyFilter) {
+        difficultyFilter.addEventListener('change', filterTrails);
+    }
+    
+    if (parkFilter) {
+        parkFilter.addEventListener('change', filterTrails);
+    }
+    
+    if (lengthFilter) {
+        lengthFilter.addEventListener('input', function() {
+            document.getElementById('length-value').textContent = `${this.value} km`;
+            filterTrails();
+        });
+    }
+    
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            difficultyFilter.value = '';
+            parkFilter.value = '';
+            lengthFilter.value = 50;
+            document.getElementById('length-value').textContent = '50 km';
+            clearSearchBtn.style.display = 'none';
+            filterTrails();
+        });
+    }
 }
 
-function getPOIIcon(type) {
-    const iconConfig = {
-        'parking': { icon: '🅿️', color: '#007bff' },
-        'trailhead': { icon: '🚩', color: '#28a745' },
-        'bike_shop': { icon: '🚲', color: '#fd7e14' },
-        'viewpoint': { icon: '👁️', color: '#6f42c1' },
-        'water': { icon: '💧', color: '#17a2b8' }
-    };
-
-    const config = iconConfig[type] || { icon: '📍', color: '#6c757d' };
-
-    return L.divIcon({
-        html: `<div style="font-size: 24px;">${config.icon}</div>`,
-        className: 'poi-icon',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
+function filterTrails() {
+    const searchTerm = document.getElementById('trail-search').value.toLowerCase();
+    const difficulty = document.getElementById('difficulty-filter').value;
+    const maxLength = parseFloat(document.getElementById('length-filter').value);
+    
+    let filtered = allTrailsData.filter(trail => {
+        const props = trail.properties;
+        
+        // Search filter
+        if (searchTerm && !props.name.toLowerCase().includes(searchTerm)) {
+            return false;
+        }
+        
+        // Difficulty filter
+        if (difficulty && props.difficulty !== difficulty) {
+            return false;
+        }
+        
+        // Length filter
+        if (props.length_km > maxLength) {
+            return false;
+        }
+        
+        return true;
+    });
+    
+    renderTrailCards(filtered);
+    
+    // Update map display
+    displayTrails({
+        type: 'FeatureCollection',
+        features: filtered
     });
 }
 
-// ==================================================
-// LAYER CONTROL
-// ==================================================
-
-function setupLayerControl() {
-    const overlays = {
-        '<span style="color: #FF6B35;">🏞️ Parks</span>': layerGroups.parks,
-        '<span style="color: #007bff;">🚵 Trails</span>': layerGroups.trails,
-        '<span style="color: #28a745;">📍 Points of Interest</span>': layerGroups.pois
-    };
-
-    layerControl = L.control.layers(null, overlays, {
-        collapsed: false,
-        position: 'topright'
-    }).addTo(map);
+function populateParkFilter() {
+    const parkFilter = document.getElementById('park-filter');
+    const modalParkSelect = document.getElementById('modal-trail-park');
+    
+    if (!parkFilter) return;
+    
+    // Extract unique park names
+    const parkNames = [...new Set(allParksData.map(p => p.properties.name))].sort();
+    
+    parkNames.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        parkFilter.appendChild(option.cloneNode(true));
+        
+        if (modalParkSelect) {
+            modalParkSelect.appendChild(option);
+        }
+    });
 }
 
-// ==================================================
-// UI HELPERS
-// ==================================================
+// ============================================
+// UTILITIES
+// ============================================
 
 function updateDataCounts() {
-    // Update trail count in sidebar
-    const trailCount = document.getElementById('sidebar-trail-count');
-    if (trailCount) {
-        trailCount.textContent = allTrailsData.length;
-        console.log(`✓ Trail count updated in sidebar: ${allTrailsData.length}`);
-    } else {
-        console.warn('⚠️ Could not find sidebar-trail-count element');
+    const sidebarCount = document.getElementById('sidebar-trail-count');
+    const navCount = document.getElementById('nav-trail-count');
+    const count = allTrailsData.length;
+    
+    if (sidebarCount) {
+        sidebarCount.textContent = count;
     }
+    
+    if (navCount) {
+        navCount.textContent = count;
+    }
+    
+    console.log(`✓ Trail counts updated: ${count}`);
 }
 
 function showLoading(show) {
-    const loader = document.getElementById('loading-spinner');
-    if (loader) {
-        loader.style.display = show ? 'block' : 'none';
-    }
-}
-
-function showAlert(message, type = 'info', duration = 5000) {
-    console.log(`[${type.toUpperCase()}]`, message);
-    
-    // Optional: Display toast notification if you have a notification system
-    const alertDiv = document.getElementById('alert-container');
-    if (alertDiv) {
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${type} alert-dismissible fade show`;
-        alert.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        alertDiv.appendChild(alert);
-
-        if (duration > 0) {
-            setTimeout(() => alert.remove(), duration);
+    const loadingEl = document.getElementById('map-loading');
+    if (loadingEl) {
+        if (show) {
+            loadingEl.classList.add('active');
+        } else {
+            loadingEl.classList.remove('active');
         }
-    }
-}
-
-function fitMapToBounds() {
-    const allLayers = [
-        ...layerGroups.parks.getLayers(),
-        ...layerGroups.trails.getLayers(),
-        ...layerGroups.pois.getLayers()
-    ];
-
-    if (allLayers.length > 0) {
-        const group = L.featureGroup(allLayers);
-        map.fitBounds(group.getBounds().pad(0.1));
-    }
-}
-
-// ==================================================
-// EVENT LISTENERS
-// ==================================================
-
-function setupEventListeners() {
-    // Refresh button
-    const refreshBtn = document.getElementById('refresh-btn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-            console.log('🔄 Refreshing data...');
-            loadAllData();
-        });
-    }
-
-    // Search functionality
-    const searchBtn = document.getElementById('search-btn');
-    if (searchBtn) {
-        searchBtn.addEventListener('click', handleSearch);
-    }
-
-    // Find nearest button
-    const nearestBtn = document.getElementById('find-nearest-btn');
-    if (nearestBtn) {
-        nearestBtn.addEventListener('click', findNearestTrails);
-    }
-
-    console.log('✓ Event listeners set up');
-}
-
-function handleSearch() {
-    const query = document.getElementById('search-input')?.value.trim().toLowerCase();
-    if (!query) return;
-
-    const matches = allTrailsData.filter(trail => 
-        trail.properties.name?.toLowerCase().includes(query) ||
-        trail.properties.difficulty?.toLowerCase().includes(query)
-    );
-
-    if (matches.length > 0) {
-        displayTrails({ type: 'FeatureCollection', features: matches });
-        showAlert(`Found ${matches.length} trail(s) matching "${query}"`, 'success');
-    } else {
-        showAlert(`No trails found matching "${query}"`, 'warning');
-    }
-}
-
-function findNearestTrails() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                fetch(`/api/trails/proximity/?lat=${lat}&lng=${lng}&radius=20`)
-                    .then(r => r.json())
-                    .then(data => {
-                        displayTrails({ type: 'FeatureCollection', features: data });
-                        map.setView([lat, lng], 12);
-                        L.marker([lat, lng]).addTo(map).bindPopup('Your Location').openPopup();
-                        showAlert(`Found ${data.length} nearby trails`, 'success');
-                    });
-            },
-            () => showAlert('Unable to get your location', 'warning')
-        );
     }
 }
 

@@ -1,183 +1,212 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Interactive MTB Trails Map{% endblock %}
+{% block title %}Trail Finder - MTB Trails Ireland{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-  <div class="row">
-    <!-- Sidebar -->
-    <div class="col-lg-3 col-md-4 py-4">
-      <div class="p-2">
-
-        <!-- Environment Status -->
-        <div class="card mb-3">
-          <div class="card-header">
-            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Environment Status</h6>
-          </div>
-          <div class="card-body">
-            <div class="status-item mb-2"><span class="badge bg-success me-2">✓</span>Django: 5.x</div>
-            <div class="status-item mb-2"><span class="badge bg-success me-2">✓</span>PostGIS: 3.x</div>
-            <div class="status-item mb-2"><span class="badge bg-success me-2">✓</span>Leaflet: 1.9.4</div>
-            <div class="status-item">
-              <span class="badge bg-primary me-2">📍</span>
-              Trails: <span id="sidebar-trail-count" class="badge bg-primary">0</span>
-            </div>
+<div class="app-container">
+  <div class="row g-0" style="height: calc(100vh - 60px);">
+    
+    <!-- Left Sidebar: Trail Finder -->
+    <div class="col-lg-3 col-md-4 sidebar-container">
+      <div class="sidebar-content">
+        
+        <!-- Sidebar Header -->
+        <div class="sidebar-header">
+          <h5 class="sidebar-title">
+            <i class="fas fa-hiking"></i> Trail Finder
+          </h5>
+          <span class="trail-count-badge" id="sidebar-trail-count">5</span>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="search-section">
+          <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input 
+              type="text" 
+              id="trail-search" 
+              class="search-input" 
+              placeholder="Search trails by name..."
+              autocomplete="off"
+            >
+            <button class="clear-search" id="clear-search-btn" style="display: none;">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
         </div>
-
-        <!-- Quick Add Trail -->
-        <div class="card mb-3">
-          <div class="card-header">
-            <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Quick Add Trail</h6>
+        
+        <!-- Filters Section -->
+        <div class="filters-section">
+          <div class="filters-header">
+            <h6><i class="fas fa-filter"></i> Filters</h6>
+            <button class="clear-filters-btn" id="clear-filters-btn">
+              <i class="fas fa-undo"></i> Clear
+            </button>
           </div>
-          <div class="card-body">
-            <form id="quick-add-form">
-              <div class="mb-2">
-                <input type="text" class="form-control form-control-sm" id="trail-name" placeholder="Trail name *" required>
-              </div>
-              <div class="mb-2">
-                <select class="form-select form-select-sm" id="trail-difficulty" required>
-                  <option value="">Difficulty *</option>
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="expert">Expert</option>
-                </select>
-              </div>
-              <div class="row mb-2">
-                <div class="col-6">
-                  <input type="number" step="0.1" class="form-control form-control-sm" id="trail-length" placeholder="Length (km) *" required>
-                </div>
-                <div class="col-6">
-                  <input type="number" step="1" class="form-control form-control-sm" id="trail-elevation" placeholder="Gain (m) *" required>
-                </div>
-              </div>
-              <div class="mb-2">
-                <textarea class="form-control form-control-sm" id="trail-path" rows="2" placeholder="WKT LINESTRING *" required></textarea>
-                <small class="text-muted d-block mt-1">
-                  Tip: Click on the map to append points. Press <kbd>Esc</kbd> to clear the builder.
-                </small>
-              </div>
-              <button type="button" class="btn btn-primary btn-sm w-100" id="save-trail">
-                <i class="fas fa-save me-1"></i>Save Trail
-              </button>
-            </form>
-          </div>
-        </div>
-
-        <!-- Search & Filters -->
-        <div class="card mb-3">
-          <div class="card-header">
-            <h6 class="mb-0"><i class="fas fa-search me-2"></i>Search & Filters</h6>
-          </div>
-          <div class="card-body">
-            <div class="input-group mb-2">
-              <input type="text" id="trail-search" class="form-control form-control-sm" placeholder="Search trails...">
-              <button class="btn btn-outline-secondary btn-sm" type="button" id="search-btn">🔍</button>
-              <button class="btn btn-outline-danger btn-sm" type="button" id="clear-search">Clear</button>
-            </div>
-            <select id="difficulty-filter" class="form-select form-select-sm mb-2">
-              <option value="">All Difficulties</option>
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="expert">Expert</option>
+          
+          <!-- Difficulty Filter -->
+          <div class="filter-group">
+            <label class="filter-label">Difficulty Level</label>
+            <select id="difficulty-filter" class="filter-select">
+              <option value="">All Levels</option>
+              <option value="beginner">🟢 Beginner</option>
+              <option value="intermediate">🔵 Intermediate</option>
+              <option value="advanced">⚫ Advanced</option>
+              <option value="expert">🔴 Expert</option>
             </select>
-            <div class="d-grid">
-              <button class="btn btn-primary btn-sm" id="refresh-map">Refresh</button>
-            </div>
-            <hr class="my-2">
-            <div class="d-grid">
-              <button class="btn btn-success btn-sm" id="proximity-btn">📍 Find Nearest</button>
+          </div>
+          
+          <!-- Park Filter -->
+          <div class="filter-group">
+            <label class="filter-label">Park Location</label>
+            <select id="park-filter" class="filter-select">
+              <option value="">All Parks</option>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          
+          <!-- Length Filter -->
+          <div class="filter-group">
+            <label class="filter-label">
+              Max Length: <span id="length-value" class="filter-value">50 km</span>
+            </label>
+            <input 
+              type="range" 
+              class="filter-range" 
+              min="1" 
+              max="50" 
+              value="50" 
+              id="length-filter"
+            >
+            <div class="range-labels">
+              <span>1 km</span>
+              <span>50 km</span>
             </div>
           </div>
         </div>
-
+        
+        <!-- Results Count -->
+        <div class="results-info">
+          <span id="results-count">Loading trails...</span>
+        </div>
+        
+        <!-- Trail Cards List -->
+        <div class="trail-list" id="trail-list">
+          <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading trails...</p>
+          </div>
+        </div>
+        
       </div>
     </div>
-
-    <!-- Main Map -->
-    <div class="col-lg-9 col-md-8">
-      <div id="map-container" class="position-relative">
-        <!-- full-screen loading overlay for data fetches -->
-        <div class="map-loading">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+    
+    <!-- Right Side: Map -->
+    <div class="col-lg-9 col-md-8 map-column">
+      <div class="map-container">
+        <!-- Loading Overlay -->
+        <div class="map-loading" id="map-loading">
+          <div class="spinner-wrapper">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            <p>Loading map data...</p>
           </div>
         </div>
-
-        <!-- the map -->
-        <div id="map" class="w-100" style="height: 70vh;"></div>
-
-        <!-- Live Coordinate HUD -->
-        <div class="map-info-box">
-          <div class="bg-white rounded p-2 shadow-sm">
-            <small class="text-muted">
-              <i class="fas fa-location-arrow me-1"></i>
-              <span id="map-coordinates">Move mouse on map…</span>
-            </small>
-          </div>
+        
+        <!-- Leaflet Map -->
+        <div id="map"></div>
+        
+        <!-- Coordinate Display -->
+        <div class="map-coordinates">
+          <i class="fas fa-crosshairs"></i>
+          <span id="map-coordinates">Move cursor on map...</span>
         </div>
-      </div>
-
-      <!-- Trail Info Panel -->
-      <div id="trail-info" class="card m-2" style="display:none;">
-        <div class="card-header d-flex justify-content-between">
-          <h5 class="mb-0">Trail Info</h5>
-          <button type="button" class="btn-close" id="close-info"></button>
-        </div>
-        <div class="card-body" id="trail-info-content"></div>
       </div>
     </div>
+    
   </div>
 </div>
 
-<!-- Add Trail Modal (same fields as quick add) -->
+<!-- Add Trail Modal -->
 <div class="modal fade" id="addTrailModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Add New Trail</h5>
+        <h5 class="modal-title">
+          <i class="fas fa-plus-circle me-2"></i>Add New Trail
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <form id="add-trail-form">
-          <div class="mb-3">
-            <label for="trail-name" class="form-label">Trail Name *</label>
-            <input type="text" class="form-control" id="trail-name" required>
-          </div>
-          <div class="mb-3">
-            <label for="trail-difficulty" class="form-label">Difficulty *</label>
-            <select class="form-control" id="trail-difficulty" required>
-              <option value="">Select...</option>
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="expert">Expert</option>
-            </select>
-          </div>
           <div class="row">
-            <div class="col-md-6">
-              <label for="trail-length" class="form-label">Length (km) *</label>
-              <input type="number" step="0.1" class="form-control" id="trail-length" required>
-            </div>
-            <div class="col-md-6">
-              <label for="trail-elevation" class="form-label">Elevation Gain (m) *</label>
-              <input type="number" step="1" class="form-control" id="trail-elevation" required>
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Trail Name *</label>
+              <input type="text" class="form-control" id="modal-trail-name" required>
             </div>
           </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Difficulty *</label>
+              <select class="form-control" id="modal-trail-difficulty" required>
+                <option value="">Select difficulty...</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+                <option value="expert">Expert</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Park (Optional)</label>
+              <select class="form-control" id="modal-trail-park">
+                <option value="">No specific park</option>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Length (km) *</label>
+              <input type="number" step="0.1" class="form-control" id="modal-trail-length" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Elevation Gain (m) *</label>
+              <input type="number" step="1" class="form-control" id="modal-trail-elevation" required>
+            </div>
+          </div>
+          
           <div class="mb-3">
-            <label for="trail-path" class="form-label">
-              Path (WKT LineString, e.g., LINESTRING(-6.26 53.25, -6.27 53.26)) *
+            <label class="form-label">Description (Optional)</label>
+            <textarea class="form-control" id="modal-trail-description" rows="3"></textarea>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">
+              Path Geometry (WKT LineString) *
             </label>
-            <textarea class="form-control" id="trail-path" rows="3" required></textarea>
-            <small class="text-muted d-block mt-1">
-              Tip: Click on the map to append points. Press <kbd>Esc</kbd> to clear.
+            <textarea 
+              class="form-control font-monospace" 
+              id="modal-trail-path" 
+              rows="3" 
+              placeholder="LINESTRING(-6.26 53.25, -6.27 53.26, -6.28 53.27)"
+              required
+            ></textarea>
+            <small class="text-muted">
+              <i class="fas fa-info-circle"></i>
+              Click on the map to build the path, or paste WKT manually
             </small>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="save-trail">Save Trail</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="save-trail-btn">
+          <i class="fas fa-save me-1"></i>Save Trail
+        </button>
       </div>
     </div>
   </div>

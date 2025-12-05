@@ -1,66 +1,494 @@
 /* ============================================
-   MTB Trails Ireland - Custom Styles
+   MTB Trails Ireland - Custom Design System
    ============================================ */
 
    :root {
-    --primary-color: #007bff;
-    --success-color: #28a745;
-    --danger-color: #dc3545;
-    --warning-color: #ffc107;
-    --dark-color: #343a40;
-    --light-bg: #f8f9fa;
-    --border-radius: 8px;
-    --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    /* Color Palette */
+    --primary-color: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --dark-color: #1f2937;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Map Container */
-#map {
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    border: 2px solid #dee2e6;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-/* Sidebar Cards */
-.card {
-    border: none;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    transition: transform 0.2s ease;
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: var(--dark-color);
+    background: var(--gray-100);
+    overflow-x: hidden;
 }
 
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
+/* ============================================
+   NAVBAR
+   ============================================ */
 
-.card-header {
-    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+.custom-navbar {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: white;
-    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    padding: 0.75rem 1.5rem;
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.custom-navbar .container-fluid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 100%;
+}
+
+.navbar-brand .brand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.brand-icon {
+    font-size: 2rem;
+}
+
+.navbar-menu {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.navbar-menu .nav-link {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.navbar-menu .nav-link:hover,
+.navbar-menu .nav-link.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.nav-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+}
+
+.stats-badge {
+    background: white;
+    color: var(--primary-color);
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   SIDEBAR - TRAIL FINDER
+   ============================================ */
+
+.sidebar-container {
+    background: white;
+    border-right: 1px solid var(--gray-200);
+    height: calc(100vh - 60px);
+    overflow: hidden;
+}
+
+.sidebar-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--gray-100);
+}
+
+.sidebar-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--dark-color);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.trail-count-badge {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
     font-weight: 600;
 }
 
-/* Status Badges */
-.badge {
+/* Search Section */
+.search-section {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--gray-600);
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.75rem 2.5rem;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.clear-search {
+    position: absolute;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--gray-600);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.clear-search:hover {
+    background: var(--gray-100);
+    color: var(--danger-color);
+}
+
+/* Filters Section */
+.filters-section {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-100);
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.filters-header h6 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.clear-filters-btn {
+    background: none;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-600);
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-sm);
     font-size: 0.85rem;
-    padding: 0.4em 0.8em;
-    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-/* Trail Lines Custom Styles */
-.trail-line {
-    transition: opacity 0.3s ease;
+.clear-filters-btn:hover {
+    background: white;
+    border-color: var(--danger-color);
+    color: var(--danger-color);
 }
 
-.trail-line:hover {
-    opacity: 1 !important;
-    filter: brightness(1.2);
+.filter-group {
+    margin-bottom: var(--spacing-md);
 }
 
-/* Popup Styling */
+.filter-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-xs);
+}
+
+.filter-value {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.filter-select {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.filter-range {
+    width: 100%;
+    margin: 0.5rem 0;
+}
+
+.range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--gray-600);
+}
+
+/* Results Info */
+.results-info {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    background: white;
+}
+
+/* Trail List */
+.trail-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md);
+}
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    color: var(--gray-600);
+}
+
+.loading-state i {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--primary-color);
+}
+
+/* Trail Card */
+.trail-card {
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.trail-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.trail-card.active {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+.trail-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: var(--spacing-sm);
+}
+
+.trail-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin: 0;
+}
+
+.trail-card-meta {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.85rem;
+    color: var(--gray-600);
+}
+
+.trail-card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.difficulty-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.difficulty-beginner {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.difficulty-intermediate {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.difficulty-advanced {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.difficulty-expert {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* ============================================
+   MAP CONTAINER
+   ============================================ */
+
+.map-column {
+    height: calc(100vh - 60px);
+    position: relative;
+}
+
+.map-container {
+    height: 100%;
+    position: relative;
+}
+
+#map {
+    height: 100%;
+    width: 100%;
+    z-index: 1;
+}
+
+.map-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.map-loading.active {
+    display: flex;
+}
+
+.spinner-wrapper {
+    text-align: center;
+}
+
+.spinner-wrapper i {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-md);
+}
+
+.spinner-wrapper p {
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.map-coordinates {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    font-size: 0.85rem;
+    color: var(--gray-700);
+    z-index: 400;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ============================================
+   LEAFLET CUSTOMIZATION
+   ============================================ */
+
 .leaflet-popup-content-wrapper {
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
 }
 
 .leaflet-popup-content h5 {
@@ -70,92 +498,42 @@
     margin-bottom: 0.75rem;
 }
 
-/* POI Icons */
-.poi-icon {
-    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
-    transition: transform 0.2s ease;
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.custom-footer {
+    background: var(--gray-800);
+    color: rgba(255, 255, 255, 0.8);
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.85rem;
 }
 
-.poi-icon:hover {
-    transform: scale(1.2);
+.footer-text {
+    margin: 0;
 }
 
-/* Loading Overlay - FIXED */
-.map-loading {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255,255,255,0.9);
-    display: none;  /* ← HIDDEN BY DEFAULT */
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    border-radius: var(--border-radius);
-}
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
 
-/* Show loading when active */
-.map-loading.active {
-    display: flex;
-}
-
-/* Buttons */
-.btn {
-    border-radius: 6px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-/* Search Input */
-.form-control:focus, 
-.form-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
-}
-
-/* Coordinate HUD */
-.map-info-box {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    z-index: 400;
-}
-
-.map-info-box .bg-white {
-    background: rgba(255,255,255,0.95) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid #dee2e6;
-}
-
-/* Responsive Design */
 @media (max-width: 768px) {
-    #map {
-        height: 50vh !important;
+    .sidebar-container {
+        height: 40vh;
+        border-right: none;
+        border-bottom: 1px solid var(--gray-200);
     }
     
-    .card {
-        margin-bottom: 1rem;
+    .map-column {
+        height: 60vh;
     }
-}
-
-/* Animation for data loading */
-@keyframes fadeIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(10px); 
+    
+    .navbar-menu {
+        gap: 0.5rem;
     }
-    to { 
-        opacity: 1; 
-        transform: translateY(0); 
+    
+    .nav-link span {
+        display: none;
     }
-}
-
-.card {
-    animation: fadeIn 0.4s ease;
 }
