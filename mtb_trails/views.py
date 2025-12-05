@@ -8,6 +8,8 @@ from django.contrib.gis.measure import D
 from django.contrib.gis.db.models.functions import Distance
 from django.shortcuts import render
 from django.db.models import Q
+import json
+
 
 from .models import Trail, POI, Park
 from .serializers import TrailSerializer, POISerializer, ParkSerializer
@@ -156,8 +158,31 @@ def trail_map_view(request):
 def parks_geojson(request):
     """Return all parks as GeoJSON FeatureCollection"""
     parks = Park.objects.all()
-    data = ParkSerializer(parks, many=True).data
-    return Response({'type': 'FeatureCollection', 'features': data})
+    
+    features = []
+    for park in parks:
+        try:
+            feature = {
+                'type': 'Feature',
+                'id': park.id,
+                'geometry': json.loads(park.boundary.geojson),  # ← Convert PostGIS to GeoJSON
+                'properties': {
+                    'id': park.id,
+                    'name': park.name,
+                    'description': park.description or '',
+                    'source': park.source,
+                    'created_at': park.created_at.isoformat()
+                }
+            }
+            features.append(feature)
+        except Exception as e:
+            print(f"Error serializing park {park.id}: {e}")
+            continue
+    
+    return Response({
+        'type': 'FeatureCollection',
+        'features': features
+    })
 
 @api_view(['GET'])
 def trails_geojson(request):
@@ -172,8 +197,10 @@ def trails_geojson(request):
 def pois_geojson(request):
     """Return all POIs as GeoJSON FeatureCollection"""
     pois = POI.objects.all()
-    data = POISerializer(pois, many=True).data
-    return Response({'type': 'FeatureCollection', 'features': data})
+    serializer = POISerializer(pois, many=True)
+    
+    # Return data directly - already in FeatureCollection format
+    return Response(serializer.data)
 
 @api_view(['GET'])
 def search_trails(request):

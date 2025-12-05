@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.gis',
     # Third party apps
     'rest_framework',
+    'rest_framework_gis',
     'corsheaders',
     # Local apps
     'mtb_trails',
