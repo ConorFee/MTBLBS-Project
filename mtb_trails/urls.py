@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+app_name = 'mtb_trails'
+
 urlpatterns = [
     # Parks endpoints (NEW)
     path('api/parks/', views.ParkListCreateView.as_view(), name='park-list'),

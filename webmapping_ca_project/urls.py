@@ -21,6 +21,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # mtb_trails app API endpoints
-    path('', include('mtb_trails.urls')),
+   path('', include('mtb_trails.urls', namespace='mtb_trails')),
 
 ]
