@@ -23,7 +23,7 @@ let wktBuilderActive = false;
 // ==================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🗺️ MTB Trails Map Initializing...');
+    console.log('MTB Trails Map Initializing...');
     initializeMap();
     loadAllData();
     setupEventListeners();
@@ -69,7 +69,7 @@ function initializeMap() {
         }
     });
 
-    console.log('✓ Map initialized');
+    console.log(' Map initialized');
 }
 
 // ==================================================
@@ -118,7 +118,7 @@ async function fetchParks() {
         const response = await fetch('/api/parks/geojson/');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        console.log('✓ Parks loaded:', data.features?.length || 0);
+        console.log('Parks loaded:', data.features?.length || 0);
         return data;
     } catch (error) {
         console.error('Error fetching parks:', error);
@@ -132,7 +132,7 @@ async function fetchTrails() {
         const response = await fetch('/api/trails/geojson/');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        console.log('✓ Trails loaded:', data.features?.length || 0);
+        console.log('Trails loaded:', data.features?.length || 0);
         return data;
     } catch (error) {
         console.error('Error fetching trails:', error);
@@ -146,7 +146,7 @@ async function fetchPOIs() {
         const response = await fetch('/api/pois/geojson/');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        console.log('✓ POIs loaded:', data.features?.length || 0);
+        console.log('POIs loaded:', data.features?.length || 0);
         return data;
     } catch (error) {
         console.error('Error fetching POIs:', error);
@@ -184,7 +184,7 @@ function displayParks(geojson) {
         }
     });
 
-    console.log(`✓ ${geojson.features.length} parks added to map`);
+    console.log(` ${geojson.features.length} parks added to map`);
 }
 
 // Trails (LineStrings)
@@ -222,7 +222,7 @@ function displayTrails(geojson) {
         }
     });
 
-    console.log(`✓ ${geojson.features.length} trails added to map`);
+    console.log(` ${geojson.features.length} trails added to map`);
 }
 
 // POIs (Points)

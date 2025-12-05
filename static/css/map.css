@@ -1,0 +1,161 @@
+/* ============================================
+   MTB Trails Ireland - Custom Styles
+   ============================================ */
+
+   :root {
+    --primary-color: #007bff;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --dark-color: #343a40;
+    --light-bg: #f8f9fa;
+    --border-radius: 8px;
+    --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Map Container */
+#map {
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    border: 2px solid #dee2e6;
+}
+
+/* Sidebar Cards */
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    color: white;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    font-weight: 600;
+}
+
+/* Status Badges */
+.badge {
+    font-size: 0.85rem;
+    padding: 0.4em 0.8em;
+    border-radius: 12px;
+}
+
+/* Trail Lines Custom Styles */
+.trail-line {
+    transition: opacity 0.3s ease;
+}
+
+.trail-line:hover {
+    opacity: 1 !important;
+    filter: brightness(1.2);
+}
+
+/* Popup Styling */
+.leaflet-popup-content-wrapper {
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.leaflet-popup-content h5 {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+/* POI Icons */
+.poi-icon {
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+    transition: transform 0.2s ease;
+}
+
+.poi-icon:hover {
+    transform: scale(1.2);
+}
+
+/* Loading Overlay - FIXED */
+.map-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.9);
+    display: none;  /* ← HIDDEN BY DEFAULT */
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    border-radius: var(--border-radius);
+}
+
+/* Show loading when active */
+.map-loading.active {
+    display: flex;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Search Input */
+.form-control:focus, 
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+/* Coordinate HUD */
+.map-info-box {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 400;
+}
+
+.map-info-box .bg-white {
+    background: rgba(255,255,255,0.95) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid #dee2e6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #map {
+        height: 50vh !important;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Animation for data loading */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+.card {
+    animation: fadeIn 0.4s ease;
+}
