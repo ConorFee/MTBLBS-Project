@@ -537,3 +537,81 @@ body {
         display: none;
     }
 }
+
+
+/* ============================================
+   TRAIL DRAWING MODE
+   ============================================ */
+
+   .path-drawing-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.drawing-active {
+    cursor: crosshair !important;
+}
+
+.drawing-active * {
+    cursor: crosshair !important;
+}
+
+/* Drawing Mode Alert */
+#drawing-status {
+    font-size: 0.9rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    animation: pulseAlert 2s ease-in-out infinite;
+}
+
+@keyframes pulseAlert {
+    0%, 100% { 
+        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4); 
+    }
+    50% { 
+        box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); 
+    }
+}
+
+/* Drawing Markers - Custom CSS for Leaflet CircleMarkers */
+.trail-point-start {
+    stroke: white;
+    stroke-width: 3;
+    fill: #10b981;
+}
+
+.trail-point-marker {
+    stroke: white;
+    stroke-width: 3;
+    fill: #2563eb;
+}
+
+.trail-point-end {
+    stroke: white;
+    stroke-width: 3;
+    fill: #ef4444;
+}
+
+/* Drawing Line */
+.trail-drawing-line {
+    stroke-dasharray: 8, 12;
+    animation: dashAnimation 1s linear infinite;
+}
+
+@keyframes dashAnimation {
+    to {
+        stroke-dashoffset: -20;
+    }
+}
+
+/* Alert size modifier */
+.alert-sm {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+}
+
+/* Modal positioning during drawing */
+.modal-shift {
+    transition: transform 0.3s ease;
+}

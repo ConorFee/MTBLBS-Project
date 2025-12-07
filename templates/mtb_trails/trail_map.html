@@ -179,24 +179,90 @@
           
           <div class="mb-3">
             <label class="form-label">Description (Optional)</label>
-            <textarea class="form-control" id="modal-trail-description" rows="3"></textarea>
+            <textarea class="form-control" id="modal-trail-description" rows="2"></textarea>
           </div>
           
+          <!-- Path Drawing Section -->
           <div class="mb-3">
             <label class="form-label">
-              Path Geometry (WKT LineString) *
+              Trail Path *
+              <span class="text-muted small">(Click points on map to draw)</span>
             </label>
+            
+            <!-- Drawing Controls -->
+            <div class="path-drawing-controls mb-2">
+              <button 
+                type="button" 
+                class="btn btn-primary btn-sm" 
+                id="start-drawing-btn"
+              >
+                <i class="fas fa-pencil-alt"></i> Draw on Map
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-warning btn-sm" 
+                id="undo-point-btn"
+                style="display: none;"
+              >
+                <i class="fas fa-undo"></i> Undo
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-danger btn-sm" 
+                id="clear-path-btn"
+                style="display: none;"
+              >
+                <i class="fas fa-trash"></i> Clear
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-success btn-sm" 
+                id="finish-drawing-btn"
+                style="display: none;"
+              >
+                <i class="fas fa-check"></i> Finish
+              </button>
+            </div>
+            
+            <!-- Drawing Status -->
+            <div 
+              class="alert alert-info alert-sm" 
+              id="drawing-status" 
+              style="display: none;"
+            >
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span>
+                  <i class="fas fa-info-circle"></i>
+                  <strong>Drawing Mode:</strong> Click map to add points
+                </span>
+                <span class="badge bg-primary" id="point-count">0 points</span>
+              </div>
+              <small class="d-block">
+                Distance: <strong id="trail-distance">0 km</strong> | Press ESC to cancel
+              </small>
+            </div>
+            
+            <!-- WKT Text Area (auto-filled) -->
             <textarea 
               class="form-control font-monospace" 
               id="modal-trail-path" 
               rows="3" 
-              placeholder="LINESTRING(-6.26 53.25, -6.27 53.26, -6.28 53.27)"
-              required
+              placeholder="LINESTRING will appear here after drawing..."
+              readonly
+              style="background: #f8f9fa; font-size: 0.85rem;"
             ></textarea>
-            <small class="text-muted">
-              <i class="fas fa-info-circle"></i>
-              Click on the map to build the path, or paste WKT manually
-            </small>
+            
+            <!-- Manual WKT Option -->
+            <div class="form-check mt-2">
+              <input 
+                class="form-check-input" 
+                type="checkbox" 
+                id="manual-wkt-toggle"
+              >
+              <label class="form-check-label small text-muted" for="manual-wkt-toggle">
+                Enter WKT manually (advanced)
+              </label>
+            </div>
           </div>
         </form>
       </div>
