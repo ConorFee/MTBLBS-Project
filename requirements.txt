@@ -6,7 +6,6 @@ django-cors-headers==4.9.0
 django-filter==25.2
 djangorestframework==3.16.1
 djangorestframework-gis==1.2.0
-GDAL==3.11.4
 idna==3.11
 psycopg2-binary==2.9.11
 python-dotenv==1.1.1

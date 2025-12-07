@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual Environments
+venv/
+.venv/
+webmap_ca_env/
+
+# Env / secrets
+.env
+*.env
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+
+# Git
+.git/
+.gitignore
+
+# Build artifacts
+*.log

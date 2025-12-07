@@ -16,7 +16,10 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+
+# Only load local .env when not running in Docker
+if not os.getenv("RUNNING_IN_DOCKER"):
+    load_dotenv(BASE_DIR / ".env")
 
 # GDAL and PROJ libraries for GeoDjango
 GDAL_LIBRARY_PATH = os.getenv("GDAL_LIBRARY_PATH")
@@ -32,7 +35,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "True").strip().lower() in ("1", "true", "yes", "on")
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
 
 # Application definition
 INSTALLED_APPS = [
@@ -90,11 +93,11 @@ WSGI_APPLICATION = 'webmapping_ca_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'), 
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'NAME': os.getenv('POSTGRES_DB', 'mtbdb'),
+        'USER': os.getenv('POSTGRES_USER', 'mtbuser'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'mtbpassword'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
     }
 }
 
