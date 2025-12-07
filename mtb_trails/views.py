@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions
 from rest_framework_gis.filters import InBBoxFilter, DistanceToPointFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.gis.geos import Point, GEOSGeometry
@@ -14,7 +15,7 @@ import json
 from .models import Trail, POI, Park
 from .serializers import TrailSerializer, POISerializer, ParkSerializer
 
-# Parks Views (NEW)
+# Parks Views
 class ParkListCreateView(generics.ListCreateAPIView):
     """List all parks or create a new park"""
     queryset = Park.objects.all()
@@ -27,11 +28,11 @@ class ParkDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ParkSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-# Existing Trails Views (keep as is)
+# Trails Views 
 class TrailListCreateView(generics.ListCreateAPIView):
     queryset = Trail.objects.all()
     serializer_class = TrailSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, InBBoxFilter]
     bbox_filter_field = 'path'
 
