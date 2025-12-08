@@ -145,7 +145,20 @@ function displayParks(geojson) {
 }
 
 function displayTrails(geojson) {
-    if (!geojson || !geojson.features) return;
+    // Robust handling: wrap array in FeatureCollection if needed
+    if (!geojson) return;
+    let featuresArray = [];
+    if (Array.isArray(geojson)) {
+         featuresArray = geojson;
+         geojson = { type: 'FeatureCollection', features: featuresArray };
+    } else if (geojson.features && Array.isArray(geojson.features)) {
+         featuresArray = geojson.features;
+    } else {
+        // Fallback for empty/malformed
+        featuresArray = [];
+        geojson = { type: 'FeatureCollection', features: [] };
+    }
+
     layerGroups.trails.clearLayers();
 
     const colors = {
@@ -173,7 +186,7 @@ function displayTrails(geojson) {
         }
     }).addTo(layerGroups.trails);
 
-    renderTrailCards(geojson.features);
+    renderTrailCards(featuresArray);
 }
 
 function displayPOIs(geojson) {
@@ -213,6 +226,12 @@ function displayPOIs(geojson) {
 // ============================================
 
 function renderTrailCards(trails) {
+    // Safety check: ensure trails is an array
+    if (!Array.isArray(trails)) {
+        console.error('renderTrailCards expected an array but got:', trails);
+        trails = []; 
+    }
+
     const list = document.getElementById('trail-list');
     const results = document.getElementById('results-count');
 
@@ -258,7 +277,7 @@ window.focusOnTrail = function(trailId) {
 };
 
 // ============================================
-// DRAWING MODE (CLICK TO ADD, ESC / BUTTON TO FINISH)
+// DRAWING MODE
 // ============================================
 
 function initDrawingControls() {
@@ -307,7 +326,6 @@ function startDrawingMode() {
     }
     drawingLayer.clearLayers();
 
-    // UI updates
     document.getElementById('start-drawing-btn').style.display = 'none';
     document.getElementById('undo-point-btn').style.display = 'inline-block';
     document.getElementById('clear-path-btn').style.display = 'inline-block';
@@ -315,10 +333,8 @@ function startDrawingMode() {
     document.getElementById('drawing-status').style.display = 'block';
     document.getElementById('map').classList.add('drawing-active');
 
-    // Listen to map clicks
     map.on('click', onMapClickForDrawing);
-
-    console.log('✓ Drawing mode started – click points on map');
+    console.log('✓ Drawing mode started');
 }
 
 function onMapClickForDrawing(e) {
@@ -326,18 +342,16 @@ function onMapClickForDrawing(e) {
     const latlng = e.latlng;
     drawingPoints.push([latlng.lng, latlng.lat]);  // store as [lng, lat]
 
-    // Marker
     const isStart = drawingPoints.length === 1;
     const marker = L.circleMarker(latlng, {
         radius: 6,
         color: 'white',
         weight: 2,
-        fillColor: isStart ? '#10b981' : '#2563eb', // green start, blue others
+        fillColor: isStart ? '#10b981' : '#2563eb',
         fillOpacity: 1
     }).addTo(drawingLayer);
     drawingMarkers.push(marker);
 
-    // Line
     if (drawingPoints.length > 1) {
         if (drawingLine) drawingLayer.removeLayer(drawingLine);
         const latlngs = drawingPoints.map(p => [p[1], p[0]]); // [lat, lng]
@@ -400,18 +414,15 @@ function finishDrawing() {
 
     drawingMode = false;
 
-    // Solid line (remove dash)
     if (drawingLine) {
         drawingLine.setStyle({ dashArray: null });
     }
 
-    // Color last marker red (end)
     if (drawingMarkers.length > 0) {
         const last = drawingMarkers[drawingMarkers.length - 1];
         last.setStyle({ fillColor: '#ef4444' });
     }
 
-    // Remove listener
     map.off('click', onMapClickForDrawing);
     document.getElementById('map').classList.remove('drawing-active');
     document.getElementById('drawing-status').style.display = 'none';
@@ -441,7 +452,6 @@ function updateDrawingStatus() {
         const km = dist / 1000;
         distLabel.textContent = `${km.toFixed(2)} km`;
 
-        // Auto-fill length field
         const lenInput = document.getElementById('modal-trail-length');
         if (lenInput) lenInput.value = km.toFixed(1);
     }
@@ -455,12 +465,9 @@ function generateWKT() {
         pathEl.value = '';
         return;
     }
-
-    // Build LINESTRING(lng lat, lng lat, ...)
     const coords = drawingPoints.map(p => `${p[0]} ${p[1]}`).join(', ');
     const wkt = `LINESTRING(${coords})`;
     pathEl.value = wkt;
-
     console.log('Generated WKT:', wkt);
 }
 
@@ -520,16 +527,19 @@ async function handleSaveTrail() {
         const data = await res.json();
         console.log('✅ Trail created:', data);
 
-        // Close modal
         const modalEl = document.getElementById('addTrailModal');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        if (modalInstance) modalInstance.hide();
+        // Check if bootstrap is available
+        if (typeof bootstrap !== 'undefined') {
+             const modalInstance = bootstrap.Modal.getInstance(modalEl);
+             if (modalInstance) modalInstance.hide();
+        } else {
+             // Fallback if bootstrap object not found (unlikely)
+             if (modalEl) modalEl.classList.remove('show');
+        }
 
-        // Reset form & drawing
         document.getElementById('add-trail-form').reset();
         clearDrawing();
 
-        // Reload trails
         await fetchTrails();
         alert(`Trail "${name}" created successfully!`);
     } catch (err) {
@@ -557,7 +567,7 @@ function getCookie(name) {
 }
 
 // ============================================
-// FILTER & SEARCH (unchanged, minimal)
+// FILTER & SEARCH
 // ============================================
 
 function setupFilterAndSearchListeners() {
@@ -566,7 +576,7 @@ function setupFilterAndSearchListeners() {
     const difficultyFilter = document.getElementById('difficulty-filter');
     const lengthFilter = document.getElementById('length-filter');
     const clearFiltersBtn = document.getElementById('clear-filters-btn');
-    const nearMeBtn = document.getElementById('near-me-btn'); 
+    const nearMeBtn = document.getElementById('near-me-btn');
 
     if (searchInput && clearSearchBtn) {
         searchInput.addEventListener('input', () => {
@@ -599,7 +609,15 @@ function setupFilterAndSearchListeners() {
                 const label = document.getElementById('length-value');
                 if (label) label.textContent = '50 km';
             }
-            filterTrails();
+            // Reset map view from "Near Me"
+            if (nearMeMarker) map.removeLayer(nearMeMarker);
+            if (nearMeCircle) map.removeLayer(nearMeCircle);
+            const statusEl = document.getElementById('near-me-status');
+            if (statusEl) statusEl.textContent = '';
+            
+            // Reload all trails
+            displayTrails({ type: 'FeatureCollection', features: allTrailsData });
+            renderTrailCards(allTrailsData);
         });
     }
 
@@ -622,8 +640,8 @@ function filterTrails() {
         return true;
     });
 
-    renderTrailCards(filtered);
     displayTrails({ type: 'FeatureCollection', features: filtered });
+    renderTrailCards(filtered);
 }
 
 // ============================================
@@ -647,7 +665,7 @@ function findTrailsNearMe() {
         async position => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            const radiusKm = 10;  // you can tweak this
+            const radiusKm = 10;
 
             if (statusEl) {
                 statusEl.textContent = `Searching for trails within ${radiusKm} km of your location...`;
@@ -656,32 +674,50 @@ function findTrailsNearMe() {
             try {
                 showLoading(true);
 
-                // OPTIONAL: show marker + circle on map
+                // Show marker + circle on map
                 showNearMeMarker(lat, lng, radiusKm);
 
-                // Call your spatial endpoint
+                // Call endpoint
                 const url = `/api/trails/within-radius/?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`;
                 const res = await fetch(url);
                 if (!res.ok) {
                     throw new Error(`Server error: ${res.status}`);
                 }
                 const data = await res.json();
+                
+                // Debug response
+                console.log('API Response (Nearby):', data);
 
-                // Expecting GeoJSON FeatureCollection
-                const features = data.features || data.results || [];
+                // Extract features safely
+                let features = [];
+                if (Array.isArray(data)) {
+                    features = data;
+                } else if (data.features && Array.isArray(data.features)) {
+                    features = data.features;
+                } else if (data.results && Array.isArray(data.results)) {
+                    features = data.results;
+                }
 
-                if (features.length === 0) {
+                console.log('Extracted features:', features);
+
+                if (!features || features.length === 0) {
                     if (statusEl) statusEl.textContent = `No trails found within ${radiusKm} km.`;
-                    // Clear trails on map and sidebar
-                    renderTrailCards([]);
+                    
+                    // IMPORTANT: Don't clear the visual map circle, just the trails
+                    // displayTrails({ type: 'FeatureCollection', features: [] });
+                    // renderTrailCards([]);
+                    
+                    // Actually, let's allow it to clear so user knows nothing was found matching
                     displayTrails({ type: 'FeatureCollection', features: [] });
+                    renderTrailCards([]);
+                    
                     return;
                 }
 
-                // Update map and cards with only these trails
+                // Update map and cards
                 displayTrails({ type: 'FeatureCollection', features: features });
                 renderTrailCards(features);
-
+                
                 // Zoom to bounds
                 zoomToFeaturesBounds(features);
 
@@ -690,27 +726,15 @@ function findTrailsNearMe() {
                 }
             } catch (err) {
                 console.error('❌ Error finding nearby trails:', err);
-                alert('Error finding nearby trails. Please try again.');
-                if (statusEl) statusEl.textContent = 'Something went wrong. Please try again.';
+                if (statusEl) statusEl.textContent = 'Something went wrong.';
             } finally {
                 showLoading(false);
             }
         },
         error => {
             console.error('Geolocation error:', error);
-            if (statusEl) {
-                if (error.code === error.PERMISSION_DENIED) {
-                    statusEl.textContent = 'Location permission denied. Cannot find nearby trails.';
-                } else {
-                    statusEl.textContent = 'Unable to get your location.';
-                }
-            }
+            if (statusEl) statusEl.textContent = 'Unable to get location.';
             alert('Could not access your location.');
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
         }
     );
 }
@@ -718,12 +742,8 @@ function findTrailsNearMe() {
 function showNearMeMarker(lat, lng, radiusKm) {
     const center = [lat, lng];
 
-    if (nearMeMarker) {
-        map.removeLayer(nearMeMarker);
-    }
-    if (nearMeCircle) {
-        map.removeLayer(nearMeCircle);
-    }
+    if (nearMeMarker) map.removeLayer(nearMeMarker);
+    if (nearMeCircle) map.removeLayer(nearMeCircle);
 
     nearMeMarker = L.marker(center, {
         icon: L.divIcon({
@@ -740,61 +760,58 @@ function showNearMeMarker(lat, lng, radiusKm) {
         fillColor: '#3b82f6',
         fillOpacity: 0.1
     }).addTo(map);
+    
+    map.setView(center, 12);
 }
 
 function zoomToFeaturesBounds(features) {
     try {
         const latlngs = [];
-
         features.forEach(f => {
             const geom = f.geometry;
             if (!geom) return;
-
             if (geom.type === 'LineString') {
-                geom.coordinates.forEach(c => {
-                    latlngs.push([c[1], c[0]]);
-                });
+                geom.coordinates.forEach(c => latlngs.push([c[1], c[0]]));
             } else if (geom.type === 'MultiLineString') {
-                geom.coordinates.forEach(line => {
-                    line.forEach(c => latlngs.push([c[1], c[0]]));
-                });
-            } else if (geom.type === 'Point') {
-                latlngs.push([geom.coordinates[1], geom.coordinates[0]]);
+                geom.coordinates.forEach(line => line.forEach(c => latlngs.push([c[1], c[0]])));
             }
         });
 
         if (latlngs.length > 0) {
             const bounds = L.latLngBounds(latlngs);
-            map.fitBounds(bounds, { padding: [40, 40] });
+            map.fitBounds(bounds, { padding: [50, 50] });
         }
     } catch (err) {
-        console.warn('Could not zoom to nearby trails bounds:', err);
+        console.warn('Could not zoom to nearby trails:', err);
     }
 }
-
 
 function populateParkFilter() {
     const parkFilter = document.getElementById('park-filter');
     const modalPark = document.getElementById('modal-trail-park');
     if (!parkFilter || !modalPark) return;
 
-    const uniqueParks = [...new Set(allParksData.map(f => f.properties.name))].sort();
-    for (const name of uniqueParks) {
-        const parkFeature = allParksData.find(f => f.properties.name === name);
-        const id = parkFeature?.properties.id;
+    // Use a Set to avoid duplicates if data is weird
+    const seen = new Set();
+    
+    // Clear existing (except default)
+    // parkFilter.innerHTML = '<option value="">All Parks</option>';
+
+    allParksData.forEach(f => {
+        const p = f.properties;
+        if (!p.name || seen.has(p.name)) return;
+        seen.add(p.name);
 
         const optFilter = document.createElement('option');
-        optFilter.value = name;
-        optFilter.textContent = name;
+        optFilter.value = p.id;
+        optFilter.textContent = p.name;
         parkFilter.appendChild(optFilter);
 
-        if (id != null) {
-            const optModal = document.createElement('option');
-            optModal.value = id;
-            optModal.textContent = name;
-            modalPark.appendChild(optModal);
-        }
-    }
+        const optModal = document.createElement('option');
+        optModal.value = p.id;
+        optModal.textContent = p.name;
+        modalPark.appendChild(optModal);
+    });
 }
 
 // ============================================
@@ -805,8 +822,8 @@ function updateDataCounts() {
     const count = allTrailsData.length;
     const sidebar = document.getElementById('sidebar-trail-count');
     const nav = document.getElementById('nav-trail-count');
-    if (sidebar) sidebar.textContent = count;
-    if (nav) nav.textContent = count;
+    // if (sidebar) sidebar.textContent = count;
+    // if (nav) nav.textContent = count;
 }
 
 function showLoading(show) {

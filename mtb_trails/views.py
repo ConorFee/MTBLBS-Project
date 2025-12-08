@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from django.contrib.gis.geos import Point, GEOSGeometry
 from django.contrib.gis.measure import D
 from django.contrib.gis.db.models.functions import Distance
+from django.db.models.functions import Cast
+from django.contrib.gis.db.models import LineStringField
 from django.shortcuts import render
 from django.db.models import Q
 import json
@@ -103,41 +105,42 @@ def nearest_trails(request):
 
 @api_view(['GET'])
 def trails_within_radius(request):
-    """
-    Get trails within a specified radius of a point.
-    
-    Query parameters:
-    - lat: Latitude (default 53.35)
-    - lng: Longitude (default -7.5)  
-    - radius_km: Search radius in kilometers (default 10)
-    
-    Returns trails within the radius, ordered by distance.
-    """
-    lat = float(request.GET.get('lat', 53.35))
-    lng = float(request.GET.get('lng', -7.5))
-    radius_km = float(request.GET.get('radius_km', 10))
-    
-    p = Point(lng, lat, srid=4326)
-    
-    # Filter trails within radius and order by distance
-    trails = Trail.objects.filter(
-        path__distance_lte=(p, D(km=radius_km))
-    ).annotate(
-        distance=Distance('path', p)
-    ).order_by('distance')
-    
-    serializer = TrailSerializer(trails, many=True)
-    
-    # Return GeoJSON with metadata
-    return Response({
-        'type': 'FeatureCollection',
-        'features': serializer.data,
-        'query': {
-            'center': {'lat': lat, 'lng': lng},
-            'radius_km': radius_km,
-            'count': trails.count()
-        }
-    })
+    try:
+        lat = float(request.GET.get('lat', 53.35))
+        lng = float(request.GET.get('lng', -7.5))
+        radius_km = float(request.GET.get('radius_km', 10))
+        
+        p = Point(lng, lat, srid=4326)
+        
+        # 1. Cast for accurate distance
+        trails = Trail.objects.annotate(
+            geo_path=Cast('path', LineStringField(geography=True))
+        ).filter(
+            geo_path__dwithin=(p, D(km=radius_km))
+        )
+        
+        # 2. Serialize
+        # Since this is a GeoFeatureModelSerializer, .data is a FeatureCollection dict
+        serializer = TrailSerializer(trails, many=True)
+        serialized_data = serializer.data 
+        
+        # 3. Construct Response
+        # We want to return a FeatureCollection. 
+        # serialized_data['features'] is the list of features we want.
+        
+        return Response({
+            'type': 'FeatureCollection',
+            'features': serialized_data.get('features', []), # Extract just the list
+            'query': {
+                'center': {'lat': lat, 'lng': lng},
+                'radius_km': radius_km,
+                'count': trails.count()
+            }
+        })
+        
+    except Exception as e:
+        print(f"ERROR: {e}")
+        return Response({'error': str(e)}, status=500)
 
 
 @api_view(['GET'])
