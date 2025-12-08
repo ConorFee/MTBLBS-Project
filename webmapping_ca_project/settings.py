@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from pathlib import Path
+import dj_database_url
 from dotenv import load_dotenv
 
 
@@ -32,10 +33,9 @@ PROJ_LIBRARY_PATH = os.getenv("PROJ_LIBRARY_PATH")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-key")
-# SECURITY WARNING: don't run with debug turned on in production!
+# DEBUG: default True locally, but Render should set DEBUG=0
 DEBUG = os.getenv("DEBUG", "True").strip().lower() in ("1", "true", "yes", "on")
-
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost,0.0.0.0").split(",")
 
 # Application definition
 INSTALLED_APPS = [
@@ -90,17 +90,34 @@ WSGI_APPLICATION = 'webmapping_ca_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': os.getenv('POSTGRES_DB', 'mtbdb'),
-        'USER': os.getenv('POSTGRES_USER', 'mtbuser'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'mtbpassword'),
-        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
-    }
-}
+# Database configuration
+# Local / Docker: uses POSTGRES_* env vars
+# Render / Cloud: uses DATABASE_URL from environment
 
+if os.getenv("DATABASE_URL"):
+    # Cloud / Render: parse DATABASE_URL
+    db_from_env = dj_database_url.config(
+        default=os.getenv("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=False,  # Render internal DB usually doesn’t require SSL; can set True if needed
+    )
+    DATABASES = {
+        'default': db_from_env
+    }
+    # Ensure PostGIS engine
+    DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
+else:
+    # Local / Docker fallback (what you already use)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'NAME': os.getenv('POSTGRES_DB', 'mtbdb'),
+            'USER': os.getenv('POSTGRES_USER', 'mtbuser'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'mtbpassword'),
+            'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+            'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
