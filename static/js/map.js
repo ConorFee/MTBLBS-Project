@@ -566,6 +566,7 @@ function setupFilterAndSearchListeners() {
     const difficultyFilter = document.getElementById('difficulty-filter');
     const lengthFilter = document.getElementById('length-filter');
     const clearFiltersBtn = document.getElementById('clear-filters-btn');
+    const nearMeBtn = document.getElementById('near-me-btn'); 
 
     if (searchInput && clearSearchBtn) {
         searchInput.addEventListener('input', () => {
@@ -601,6 +602,10 @@ function setupFilterAndSearchListeners() {
             filterTrails();
         });
     }
+
+    if (nearMeBtn) {
+        nearMeBtn.addEventListener('click', findTrailsNearMe);
+    }
 }
 
 function filterTrails() {
@@ -620,6 +625,153 @@ function filterTrails() {
     renderTrailCards(filtered);
     displayTrails({ type: 'FeatureCollection', features: filtered });
 }
+
+// ============================================
+// NEARBY TRAILS (GEOLOCATION + SPATIAL QUERY)
+// ============================================
+
+let nearMeMarker = null;
+let nearMeCircle = null;
+
+function findTrailsNearMe() {
+    const statusEl = document.getElementById('near-me-status');
+    if (!navigator.geolocation) {
+        if (statusEl) statusEl.textContent = 'Geolocation is not supported by your browser.';
+        alert('Geolocation is not supported by your browser.');
+        return;
+    }
+
+    if (statusEl) statusEl.textContent = 'Requesting your location...';
+
+    navigator.geolocation.getCurrentPosition(
+        async position => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const radiusKm = 10;  // you can tweak this
+
+            if (statusEl) {
+                statusEl.textContent = `Searching for trails within ${radiusKm} km of your location...`;
+            }
+
+            try {
+                showLoading(true);
+
+                // OPTIONAL: show marker + circle on map
+                showNearMeMarker(lat, lng, radiusKm);
+
+                // Call your spatial endpoint
+                const url = `/api/trails/within-radius/?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`;
+                const res = await fetch(url);
+                if (!res.ok) {
+                    throw new Error(`Server error: ${res.status}`);
+                }
+                const data = await res.json();
+
+                // Expecting GeoJSON FeatureCollection
+                const features = data.features || data.results || [];
+
+                if (features.length === 0) {
+                    if (statusEl) statusEl.textContent = `No trails found within ${radiusKm} km.`;
+                    // Clear trails on map and sidebar
+                    renderTrailCards([]);
+                    displayTrails({ type: 'FeatureCollection', features: [] });
+                    return;
+                }
+
+                // Update map and cards with only these trails
+                displayTrails({ type: 'FeatureCollection', features: features });
+                renderTrailCards(features);
+
+                // Zoom to bounds
+                zoomToFeaturesBounds(features);
+
+                if (statusEl) {
+                    statusEl.textContent = `Showing ${features.length} trail${features.length !== 1 ? 's' : ''} within ${radiusKm} km of your location.`;
+                }
+            } catch (err) {
+                console.error('❌ Error finding nearby trails:', err);
+                alert('Error finding nearby trails. Please try again.');
+                if (statusEl) statusEl.textContent = 'Something went wrong. Please try again.';
+            } finally {
+                showLoading(false);
+            }
+        },
+        error => {
+            console.error('Geolocation error:', error);
+            if (statusEl) {
+                if (error.code === error.PERMISSION_DENIED) {
+                    statusEl.textContent = 'Location permission denied. Cannot find nearby trails.';
+                } else {
+                    statusEl.textContent = 'Unable to get your location.';
+                }
+            }
+            alert('Could not access your location.');
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+function showNearMeMarker(lat, lng, radiusKm) {
+    const center = [lat, lng];
+
+    if (nearMeMarker) {
+        map.removeLayer(nearMeMarker);
+    }
+    if (nearMeCircle) {
+        map.removeLayer(nearMeCircle);
+    }
+
+    nearMeMarker = L.marker(center, {
+        icon: L.divIcon({
+            html: '📍',
+            className: 'poi-icon',
+            iconSize: [24, 24]
+        })
+    }).addTo(map);
+
+    nearMeCircle = L.circle(center, {
+        radius: radiusKm * 1000,
+        color: '#2563eb',
+        weight: 2,
+        fillColor: '#3b82f6',
+        fillOpacity: 0.1
+    }).addTo(map);
+}
+
+function zoomToFeaturesBounds(features) {
+    try {
+        const latlngs = [];
+
+        features.forEach(f => {
+            const geom = f.geometry;
+            if (!geom) return;
+
+            if (geom.type === 'LineString') {
+                geom.coordinates.forEach(c => {
+                    latlngs.push([c[1], c[0]]);
+                });
+            } else if (geom.type === 'MultiLineString') {
+                geom.coordinates.forEach(line => {
+                    line.forEach(c => latlngs.push([c[1], c[0]]));
+                });
+            } else if (geom.type === 'Point') {
+                latlngs.push([geom.coordinates[1], geom.coordinates[0]]);
+            }
+        });
+
+        if (latlngs.length > 0) {
+            const bounds = L.latLngBounds(latlngs);
+            map.fitBounds(bounds, { padding: [40, 40] });
+        }
+    } catch (err) {
+        console.warn('Could not zoom to nearby trails bounds:', err);
+    }
+}
+
 
 function populateParkFilter() {
     const parkFilter = document.getElementById('park-filter');
