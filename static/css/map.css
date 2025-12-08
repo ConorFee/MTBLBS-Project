@@ -615,3 +615,45 @@ body {
 .modal-shift {
     transition: transform 0.3s ease;
 }
+
+/* Sidebar Near Me Button */
+#near-me-btn {
+    width: 100%;
+    background-color: #fff;
+    color: #2563eb;
+    border: 2px solid #2563eb;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+#near-me-btn:hover {
+    background-color: #eff6ff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+}
+
+#near-me-btn:active {
+    transform: translateY(0);
+    background-color: #dbeafe;
+}
+
+#near-me-btn i {
+    font-size: 1.1rem;
+}
+
+/* Optional: Make the status text look nicer */
+#near-me-status {
+    font-size: 0.85rem;
+    color: #64748b;
+    text-align: center;
+    margin-bottom: 16px;
+    min-height: 20px;
+}

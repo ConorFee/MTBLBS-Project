@@ -3,7 +3,7 @@
 // Advanced Web Mapping CA2
 // ============================================
 
-console.log('🗺️ MTB Trails Map Initializing...');
+console.log(' MTB Trails Map Initializing...');
 
 // Global variables
 let map;
@@ -607,7 +607,7 @@ function setupFilterAndSearchListeners() {
             if (lengthFilter) {
                 lengthFilter.value = 50;
                 const label = document.getElementById('length-value');
-                if (label) label.textContent = '50 km';
+                if (label) label.textContent = '20 km';
             }
             // Reset map view from "Near Me"
             if (nearMeMarker) map.removeLayer(nearMeMarker);
@@ -630,7 +630,7 @@ function filterTrails() {
     let filtered = allTrailsData.slice();
     const searchTerm = (document.getElementById('trail-search')?.value || '').toLowerCase();
     const difficulty = document.getElementById('difficulty-filter')?.value || '';
-    const maxLength = parseFloat(document.getElementById('length-filter')?.value || '50');
+    const maxLength = parseFloat(document.getElementById('length-filter')?.value || '20');
 
     filtered = filtered.filter(f => {
         const p = f.properties || {};
@@ -819,11 +819,23 @@ function populateParkFilter() {
 // ============================================
 
 function updateDataCounts() {
-    const count = allTrailsData.length;
+    // 1. Get current count
+    const count = allTrailsData ? allTrailsData.length : 0;
+    // 2. Update Sidebar Badge
     const sidebar = document.getElementById('sidebar-trail-count');
+    if (sidebar) {
+        sidebar.textContent = count;
+    }
+    // 3. Update Navbar Badge
+    // Your HTML uses ID "nav-trail-count" inside the navbar
     const nav = document.getElementById('nav-trail-count');
-    // if (sidebar) sidebar.textContent = count;
-    // if (nav) nav.textContent = count;
+    if (nav) {
+        nav.textContent = count;
+    } else {
+        // Fallback if ID is missing but class exists (e.g. inside the button)
+        const btnBadge = document.querySelector('.btn .badge');
+        if (btnBadge) btnBadge.textContent = count;
+    }
 }
 
 function showLoading(show) {
