@@ -28,4 +28,6 @@ urlpatterns = [
     # Frontend views
     path('map/', views.trail_map_view, name='trail-map'),
     path('trails/', views.trails_readonly_view, name='trails-list'),
+    path("", views.trail_map_view, name="home"),
+
 ]
