@@ -11,6 +11,8 @@ Backed by **Django/GeoDjango + PostGIS** and rendered with **Leaflet** as GeoJSO
 - 📍 **Find nearest** trails to a chosen point (or geolocation) within a given radius.
 - 📄 **Read-only list page** for quick inspection of all trails.
 
+test commit
+
 ---
 
 ## Tech Stack
