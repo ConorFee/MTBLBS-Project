@@ -233,7 +233,6 @@ Demonstrates:
 
 ---
 
-## Screenshots
-
+## Screenshots
 
 ![Alt t](image.png)
