@@ -2,7 +2,7 @@
    MTB Trails Ireland - Custom Design System
    ============================================ */
 
-   :root {
+:root {
     /* Color Palette */
     --primary-color: #2563eb;
     --primary-dark: #1e40af;
@@ -535,6 +535,41 @@ body {
     
     .nav-link span {
         display: none;
+    }
+
+    /* NEW - Additions for better mobile UX */
+    
+    .custom-navbar {
+        padding: 0.5rem 1rem; /* tighter padding */
+    }
+    
+    .navbar-brand .brand-link {
+        font-size: 1.2rem; /* smaller title */
+    }
+    
+    .brand-icon {
+        font-size: 1.5rem; /* smaller icon */
+    }
+    
+    .sidebar-header {
+        padding: 1rem; /* less padding */
+    }
+    
+    .sidebar-title {
+        font-size: 1rem;
+    }
+    
+    .search-section,
+    .filters-section {
+        padding: 1rem; /* less padding */
+    }
+    
+    .trail-list {
+        padding: 0.5rem; /* less padding */
+    }
+    
+    .trail-card {
+        padding: 0.75rem; /* smaller cards */
     }
 }
 
