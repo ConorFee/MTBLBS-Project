@@ -29,6 +29,6 @@ ENV PYTHONUNBUFFERED=1
 # Expose Django dev server port
 EXPOSE 8000
 
-# Run migrations then start dev server
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn webmapping_ca_project.wsgi:application --bind 0.0.0.0:8000"]
+# Run migrations, create super user for purpose of demo, then start dev server
+CMD ["sh", "-c", "python manage.py create_superuser_if_none && python manage.py collectstatic --noinput && python manage.py migrate && gunicorn webmapping_ca_project.wsgi:application --bind 0.0.0.0:8000"]
 
